@@ -5,47 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>2~3차월 콜 평가</title>
 <script>
-  /* ▼ Apps Script 웹 앱 URL(…/exec)을 넣으세요. 비워두면 이 브라우저에만 저장되는 '데모 모드'로 동작합니다. */
-const API_URL = 'https://script.google.com/macros/s/AKfycbxWxCxrIR_JzwsdFKHoEpLWrssl5cHxLShGNL6rYnWr-ysgH4rsEgUJo3AstanKfjCFUQ/exec';
+  /* ▼ Apps Script 웹 앱 URL(…/exec) */
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxWxCxrIR_JzwsdFKHoEpLWrssl5cHxLShGNL6rYnWr-ysgH4rsEgUJo3AstanKfjCFUQ/exec';
+  /* 엑셀 읽기·만들기 라이브러리 (필요할 때만 불러옴) */
+  const XLSX_LIB = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
 </script>
 <style>
   :root{
-    --navy:#1E2761; --navy2:#2E3A80; --light:#E8EFFA; --pale:#F4F6FA; --yel:#FFFBD6; --line:#C9D0DE;
-    --text:#1F2433; --muted:#5A5F6B; --red:#C00000; --green:#E2EFDA; --peach:#FBE5D6; --bg:#EEF1F7;
+    --navy:#1E2761; --light:#E8EFFA; --pale:#F4F6FA; --yel:#FFFBD6; --line:#C9D0DE;
+    --text:#1F2433; --muted:#5A5F6B; --red:#C00000; --green:#E2EFDA; --bg:#EEF1F7;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo",system-ui,sans-serif;color:var(--text);background:var(--bg);font-size:14px}
   button{font-family:inherit;cursor:pointer}
-  header{background:var(--navy);color:#fff;padding:0 20px;display:flex;align-items:center;gap:24px;position:sticky;top:0;z-index:10}
+  [hidden]{display:none!important}
+  header{background:var(--navy);color:#fff;padding:0 20px;display:flex;align-items:center;gap:22px;position:sticky;top:0;z-index:10;flex-wrap:wrap}
   header h1{font-size:17px;margin:0;padding:14px 0;white-space:nowrap}
   nav{display:flex;gap:2px;flex-wrap:wrap}
-  nav button{background:none;border:0;color:#C8CFEA;padding:16px 14px;font-size:14px;border-bottom:3px solid transparent}
+  nav button{background:none;border:0;color:#C8CFEA;padding:16px 13px;font-size:14px;border-bottom:3px solid transparent}
   nav button.on{color:#fff;border-bottom-color:#FFD34D;font-weight:700}
-  .mode{margin-left:auto;font-size:12px;color:#C8CFEA;white-space:nowrap}
-  .mode b{color:#FFD34D}
+  .userbox{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap}
+  .userbox b{color:#FFD34D}
+  .userbox button{background:transparent;border:1px solid #5A66A8;color:#E3E7F7;border-radius:4px;padding:4px 9px;font-size:12px}
+  .banner{background:#FFF4CC;border-bottom:1px solid #F0D98A;color:#7A5A00;padding:9px 20px;font-size:13px;text-align:center}
+  .banner button{margin-left:8px}
   main{max-width:1280px;margin:0 auto;padding:20px}
   .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:16px}
-  .card h2{font-size:15px;margin:0 0 12px;color:var(--navy)}
+  .card h2{font-size:15px;margin:0 0 12px;color:var(--navy);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
   label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:700}
   input,select,textarea{font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:5px;padding:7px 9px;background:#fff;color:var(--text)}
+  input[readonly]{background:var(--pale);color:var(--navy);font-weight:700}
   input:focus,select:focus,textarea:focus{outline:2px solid #8EA2E8;border-color:#8EA2E8}
+  .req{color:var(--red)}
   .btn{border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:5px;padding:8px 16px;font-size:14px;font-weight:700}
   .btn.ghost{background:#fff;color:var(--navy)}
   .btn.warn{background:#fff;color:var(--red);border-color:var(--red)}
+  .btn.gold{background:#FFD34D;color:#1E2761;border-color:#FFD34D}
   .btn.sm{padding:4px 10px;font-size:12px}
   .btn:disabled{opacity:.5;cursor:default}
   .hint{font-size:12px;color:var(--muted)}
-  /* 입력 표 */
   table{border-collapse:collapse;width:100%}
   th,td{border:1px solid var(--line);padding:6px 8px;vertical-align:middle}
   th{background:var(--navy);color:#fff;font-size:13px;font-weight:700}
-  td.cat{background:var(--light);color:var(--navy);font-weight:700;text-align:center;font-size:13px;width:130px}
+  td.cat{background:var(--light);color:var(--navy);font-weight:700;text-align:center;font-size:13px}
   td.cat.bonus{background:var(--green)}
   td.item{font-size:13px;font-weight:700;color:var(--navy);line-height:1.45}
   td.item small{display:block;font-weight:400;color:var(--muted);margin-top:3px}
-  td.pts{text-align:center;font-weight:700;width:46px}
-  td.sc{width:190px;background:var(--yel)}
+  td.pts{text-align:center;font-weight:700}
+  td.sc{background:var(--yel)}
   .chips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px}
   .chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:2px 9px;font-size:12px}
   .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
@@ -53,15 +61,14 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxWxCxrIR_JzwsdFKHoEpLW
   td.memo textarea{width:100%;min-height:52px;resize:vertical;font-size:13px}
   .totalbar{position:sticky;bottom:0;background:var(--navy);color:#fff;border-radius:8px;padding:12px 18px;display:flex;align-items:center;gap:18px;margin-top:12px;flex-wrap:wrap}
   .totalbar .big{font-size:24px;font-weight:800;color:#FFE699}
-  .totalbar .sp{flex:1}
-  /* 목록 */
+  .sp{flex:1}
   .list td{font-size:13px}
   .list tr:hover td{background:#F7F9FD}
   .num{text-align:center}
   .tag{display:inline-block;border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700}
   .t2{background:#DDEBFF;color:#1F4E9E}.t3{background:#FFE9D6;color:#A04A00}
+  .tok{background:#E2F3E5;color:#1D6B30}.terr{background:#FDE2E2;color:#A40000}.tskip{background:#EEE;color:#666}
   .g-hi{color:#B8860B;font-weight:800}.g-lo{color:var(--red);font-weight:800}
-  /* 통계 */
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
   .stat{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 16px}
   .stat .k{font-size:12px;color:var(--muted);font-weight:700}
@@ -70,31 +77,45 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxWxCxrIR_JzwsdFKHoEpLW
   .matrix{overflow:auto;max-width:100%}
   .matrix table{width:auto;min-width:100%}
   .matrix th,.matrix td{font-size:12px;white-space:nowrap}
-  .matrix td.cat{width:auto;white-space:normal;min-width:110px}
-  .matrix td.item{white-space:normal;min-width:170px;font-size:12px}
+  .matrix td.cat{white-space:normal;min-width:110px}
+  .matrix td.item{white-space:normal;min-width:150px;font-size:12px}
   .matrix .ph{background:var(--pale);color:var(--navy);font-weight:700;text-align:center}
   .matrix .avg{background:var(--light);text-align:center;font-weight:700;color:var(--navy)}
   .matrix .v{background:#FFFDE8;text-align:center;font-weight:700}
   .matrix tr.tot td{background:var(--navy);color:#fff;font-weight:800;text-align:center}
   .matrix tr.tot td.hi{color:#FFE699}.matrix tr.tot td.lo{color:#FF9C9C}
-  /* 리포트 */
+  .scroll{max-height:420px;overflow:auto}
   .report{background:#fff;padding:22px 26px;max-width:960px;margin:0 auto 16px;border:1px solid var(--line)}
   .report h3{font-size:20px;color:var(--navy);margin:0 0 10px}
   .report .info th{background:var(--pale);color:var(--navy);font-size:12px}
   .report .info td{text-align:center;font-weight:700;font-size:13px}
   .report .ev{table-layout:fixed}
   .report .ev td{font-size:12px;word-break:keep-all;overflow-wrap:anywhere}
-  .report .ev td.cat{width:auto}
-  .report .ev td.item{font-size:12px}
-  .report .ev td.crit{color:var(--muted);font-size:11.5px;width:170px}
-  .report .ev td.score{background:var(--yel);text-align:center;font-weight:800;color:var(--red);font-size:15px;width:52px}
-  .report .ev td.avg{background:var(--pale);text-align:center;color:var(--muted);width:52px}
-  .report .ev td.memo{font-size:12px;width:230px;white-space:pre-wrap}
+  .report .ev td.crit{color:var(--muted);font-size:11.5px}
+  .report .ev td.score{background:var(--yel);text-align:center;font-weight:800;color:var(--red);font-size:15px}
+  .report .ev td.avg{background:var(--pale);text-align:center;color:var(--muted)}
+  .report .ev td.memo{white-space:pre-wrap}
   .report .ev tr.tot td{background:var(--navy);color:#fff;font-weight:800;text-align:center;font-size:14px}
   .report .ev tr.tot td.score{background:var(--navy);color:#FFE699;font-size:17px}
   .report .foot{font-size:11px;color:var(--muted);margin-top:8px}
   .empty{color:var(--muted);text-align:center;padding:40px}
-  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 18px;border-radius:6px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:99}
+  /* 로그인 · 모달 */
+  #login{position:fixed;inset:0;background:linear-gradient(135deg,#1E2761,#2E3A80);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .lcard{background:#fff;border-radius:12px;padding:34px 32px;width:100%;max-width:380px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+  .lcard h2{margin:0 0 4px;color:var(--navy);font-size:21px}
+  .lcard p{margin:0 0 22px;color:var(--muted);font-size:13px}
+  .lcard label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:12px 0 5px}
+  .lcard input{width:100%;padding:10px 12px;font-size:15px}
+  .lcard .btn{width:100%;margin-top:20px;padding:11px;font-size:15px}
+  .lmsg{color:var(--red);font-size:13px;margin-top:12px;min-height:18px;white-space:pre-wrap}
+  .modal{position:fixed;inset:0;background:rgba(20,25,50,.45);display:flex;align-items:center;justify-content:center;z-index:60;padding:20px}
+  .mbox{background:#fff;border-radius:10px;padding:22px 24px;width:100%;max-width:440px;max-height:90vh;overflow:auto}
+  .mbox.wide{max-width:900px}
+  .mbox h3{margin:0 0 14px;color:var(--navy)}
+  .mbox label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 4px}
+  .mbox input{width:100%}
+  .mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 18px;border-radius:6px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:99;max-width:90vw}
   .toast.on{opacity:.95}
   .loading{position:fixed;inset:0;background:rgba(255,255,255,.6);display:none;align-items:center;justify-content:center;z-index:98;font-weight:700;color:var(--navy)}
   .loading.on{display:flex}
@@ -103,14 +124,14 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxWxCxrIR_JzwsdFKHoEpLW
   @page wide{size:A4 landscape;margin:8mm}
   @media print{
     body{background:#fff}
-    header,main,.toast,.loading{display:none!important}
+    header,main,.banner,.toast,.loading,#login,.modal{display:none!important}
     #printArea{display:block}
     #printArea .report{border:0;padding:0;max-width:none;margin:0;break-after:page}
+    #printArea .report:last-child{break-after:auto}
     #printArea .report .ev td,#printArea .report .info td,#printArea .report .info th{padding:4px 5px}
     #printArea .report .ev td{font-size:10.5px}
     #printArea .report .ev td.crit,#printArea .report .ev td.memo{font-size:10px}
     #printArea .report .ev th{font-size:11px;padding:5px}
-    #printArea .report:last-child{break-after:auto}
     #printArea .wide{page:wide}
     #printArea .wide .matrix{overflow:visible}
     #printArea .wide .matrix th,#printArea .wide .matrix td{font-size:9px;padding:3px 4px}
@@ -120,30 +141,52 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxWxCxrIR_JzwsdFKHoEpLW
 </style>
 </head>
 <body>
-<header>
+
+<!-- ===== 로그인 ===== -->
+<div id="login">
+  <form class="lcard" id="loginForm" autocomplete="on">
+    <h2>2~3차월 콜 평가</h2>
+    <p>등록된 평가자만 이용할 수 있습니다.</p>
+    <label for="lg-name">이름</label><input id="lg-name" autocomplete="username">
+    <label for="lg-emp">사번</label><input id="lg-emp" inputmode="numeric">
+    <label for="lg-pw">비밀번호</label><input id="lg-pw" type="password" autocomplete="current-password">
+    <button class="btn" type="submit">로그인</button>
+    <div class="lmsg" id="lg-msg"></div>
+    <div class="hint" style="margin-top:6px">처음 로그인하는 비밀번호는 aa1234 입니다. 비밀번호를 잊었다면 최고관리자에게 초기화를 요청하세요.</div>
+  </form>
+</div>
+
+<header id="appHeader" hidden>
   <h1>2~3차월 콜 평가</h1>
   <nav id="nav">
     <button data-v="input" class="on">평가 입력</button>
     <button data-v="list">평가 목록</button>
     <button data-v="report">개인 리포트</button>
     <button data-v="result">전체 결과</button>
+    <button data-v="admin" id="navAdmin" hidden>명단 관리</button>
   </nav>
-  <div class="mode" id="mode"></div>
+  <div class="userbox"><span id="whoami"></span><button id="btnPw">비밀번호 변경</button><button id="btnLogout">로그아웃</button></div>
 </header>
+<div class="banner" id="pwBanner" hidden>초기 비밀번호(aa1234)를 사용 중입니다. 다른 사람이 들어올 수 있으니 비밀번호를 바꿔 주세요.<button class="btn sm gold" id="btnPw2">비밀번호 변경</button></div>
 
-<main>
+<main id="app" hidden>
   <!-- ===== 평가 입력 ===== -->
   <section id="v-input">
     <div class="card">
-      <h2 id="formTitle">새 평가 입력</h2>
+      <h2><span id="formTitle">새 평가 입력</span><span class="sp"></span>
+        <button class="btn sm ghost" id="btnBlank">빈 평가시트(엑셀) 다운로드</button>
+        <button class="btn sm" id="btnUpEval">작성한 평가시트 업로드</button>
+      </h2>
       <div class="row">
-        <label class="f"><span>센터 <b style="color:var(--red)">*</b></span><select id="f-center"></select></label>
-        <label class="f"><span>차월 <b style="color:var(--red)">*</b></span><select id="f-month"><option value="">선택</option><option>2차월</option><option>3차월</option></select></label>
-        <label class="f"><span>지점장 <b style="color:var(--red)">*</b></span><input id="f-mgr" style="width:110px"></label>
+        <label class="f">평가일<input id="f-edate" type="date"></label>
+        <label class="f"><span>차월 <span class="req">*</span></span><select id="f-month"><option value="">선택</option><option>2차월</option><option>3차월</option></select></label>
+        <label class="f">센터<select id="f-center"></select></label>
+        <label class="f"><span>지점장 <span class="req">*</span></span><select id="f-mgr" style="min-width:170px"></select></label>
+        <label class="f">지점장 사번<input id="f-mgrEmp" readonly style="width:110px"></label>
+        <label class="f">파트너스코드<input id="f-ptnCode" style="width:110px"></label>
         <label class="f">파트너스명<input id="f-ptn" style="width:110px"></label>
         <label class="f">통화일시<input id="f-calldt" type="datetime-local"></label>
-        <label class="f">평가자<input id="f-evr" style="width:100px"></label>
-        <label class="f">평가일<input id="f-edate" type="date"></label>
+        <label class="f">평가자<input id="f-evr" readonly style="width:90px"></label>
       </div>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
@@ -158,8 +201,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxWxCxrIR_JzwsdFKHoEpLW
       <div id="f-filled" class="hint" style="color:#C8CFEA"></div>
       <div class="sp"></div>
       <button class="btn ghost" id="btnReset">새로 작성</button>
-      <button class="btn warn" id="btnDelete" style="display:none">삭제</button>
-      <button class="btn" id="btnSave" style="background:#FFD34D;color:#1E2761;border-color:#FFD34D">저장</button>
+      <button class="btn warn" id="btnDelete" hidden>삭제</button>
+      <button class="btn gold" id="btnSave">저장</button>
     </div>
   </section>
 
@@ -170,14 +213,16 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxWxCxrIR_JzwsdFKHoEpLW
         <label class="f">차월<select id="l-month"><option value="">전체</option><option>2차월</option><option>3차월</option></select></label>
         <label class="f">센터<select id="l-center"></select></label>
         <label class="f">검색<input id="l-q" placeholder="지점장·파트너스·평가자" style="width:200px"></label>
-        <div style="flex:1"></div>
-        <button class="btn ghost" id="btnCsv">엑셀(CSV) 다운로드</button>
-        <button class="btn" id="btnPrintAll">목록 전체 개인리포트 인쇄</button>
+        <div class="sp"></div>
+        <button class="btn ghost" id="btnCsv">목록 엑셀(CSV)</button>
+        <button class="btn ghost" id="btnXlsAll">평가시트로 다운로드</button>
+        <button class="btn" id="btnPrintAll">개인리포트 전체 인쇄</button>
       </div>
+      <div class="hint" style="margin-top:8px">'평가시트로 다운로드'는 지금 목록의 평가를 한 사람당 한 시트로 내려받습니다. 엑셀에서 고친 뒤 '평가 입력' 화면에서 업로드하면 그대로 수정됩니다.</div>
     </div>
     <div class="card" style="padding:0;overflow:auto">
       <table class="list">
-        <thead><tr><th>평가일</th><th>센터</th><th>차월</th><th>지점장</th><th>파트너스명</th><th>통화일시</th><th>평가자</th><th>합계</th><th></th></tr></thead>
+        <thead><tr><th>평가일</th><th>센터</th><th>차월</th><th>지점장</th><th>파트너스코드</th><th>파트너스명</th><th>평가자</th><th>합계</th><th></th></tr></thead>
         <tbody id="listBody"></tbody>
       </table>
     </div>
@@ -188,8 +233,9 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxWxCxrIR_JzwsdFKHoEpLW
     <div class="card">
       <div class="row">
         <label class="f">평가 선택<select id="r-sel" style="min-width:340px"></select></label>
-        <div style="flex:1"></div>
+        <div class="sp"></div>
         <button class="btn ghost" id="btnEditFromReport">이 평가 수정</button>
+        <button class="btn ghost" id="btnXlsOne">평가시트(엑셀) 다운로드</button>
         <button class="btn" id="btnPrintOne">인쇄 / PDF 저장</button>
       </div>
     </div>
@@ -202,20 +248,44 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxWxCxrIR_JzwsdFKHoEpLW
       <div class="row">
         <label class="f">차월<select id="s-month"><option value="">전체</option><option>2차월</option><option>3차월</option></select></label>
         <label class="f">센터<select id="s-center"></select></label>
-        <div style="flex:1"></div>
+        <div class="sp"></div>
         <button class="btn" id="btnPrintResult">전체 결과 인쇄 / PDF 저장</button>
       </div>
     </div>
     <div id="resultBox"></div>
   </section>
+
+  <!-- ===== 명단 관리 (최고관리자) ===== -->
+  <section id="v-admin" hidden>
+    <div class="card">
+      <h2>지점장 명단 <span class="tag t2" id="mgrCount"></span><span class="sp"></span>
+        <button class="btn sm gold" id="btnMgrAdd">＋ 지점장 추가</button>
+        <button class="btn sm ghost" id="btnMgrDown">현재 명단 · 양식 다운로드</button>
+        <button class="btn sm" id="btnMgrUp">엑셀 업로드 (명단 교체)</button></h2>
+      <div class="hint" style="margin-bottom:10px">평가는 이 명단에 있는 지점장만 할 수 있습니다. <b>현재 차월은 입사일로 매일 자동 계산</b>됩니다(한국시간, 입사월 = 1차월). 엑셀 첫 줄 제목: <b>사번 · 이름 · 센터 · 입사일</b>, 비고(선택). 업로드하면 명단 전체가 새 파일 내용으로 바뀝니다. 이미 입력된 평가는 지워지지 않습니다.</div>
+      <div class="scroll"><table class="list"><thead><tr><th>센터</th><th>이름</th><th>사번</th><th>입사일</th><th>현재 차월 <span id="mgrToday" style="font-weight:400"></span></th><th>비고</th><th></th></tr></thead><tbody id="mgrBody"></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>관리자(평가자) 명단 <span class="tag t3" id="admCount"></span><span class="sp"></span>
+        <button class="btn sm gold" id="btnAdmAdd">＋ 관리자 추가</button>
+        <button class="btn sm ghost" id="btnAdmDown">현재 명단 · 양식 다운로드</button>
+        <button class="btn sm" id="btnAdmUp">엑셀 업로드 (명단 교체)</button></h2>
+      <div class="hint" style="margin-bottom:10px">이 명단에 있는 사람만 로그인할 수 있습니다. 엑셀 첫 줄 제목: <b>사번 · 이름</b> (필수), 센터 (선택). 새로 추가된 사람의 비밀번호는 aa1234이고, 기존 사람은 비밀번호가 그대로 유지됩니다. 명단에서 빠진 사람은 바로 로그인이 막힙니다.</div>
+      <div class="scroll"><table class="list"><thead><tr><th>이름</th><th>사번</th><th>센터</th><th>권한</th><th>비밀번호</th><th>최근 변경</th><th></th></tr></thead><tbody id="admBody"></tbody></table></div>
+    </div>
+  </section>
 </main>
 
+<input type="file" id="fileEval" accept=".xlsx" hidden>
+<input type="file" id="fileMgr" accept=".xlsx" hidden>
+<input type="file" id="fileAdm" accept=".xlsx" hidden>
+<div id="modalHost"></div>
 <div id="printArea"></div>
 <div class="toast" id="toast"></div>
-<div class="loading" id="loading">불러오는 중…</div>
+<div class="loading" id="loading">처리 중…</div>
 
 <script>
-/* ================= 평가 항목 정의 (엑셀 평가표와 동일) ================= */
+/* ================= 평가 항목 (엑셀 평가표와 동일) ================= */
 const CENTERS = ['강남센터','서울센터','경인센터','충청센터','호남센터','부경센터','대경센터'];
 const MONTHS = ['2차월','3차월'];
 const CATS = [
@@ -251,45 +321,48 @@ const N = ITEMS.length;
 const MAXP = ITEMS.reduce((a,it)=>a+it.p,0);
 const catOf = (()=>{ const a=[]; CATS.forEach((c,ci)=>{for(let k=0;k<c.n;k++)a.push(ci)}); return a; })();
 
-/* ================= 데이터 계층 (Apps Script 또는 데모 저장) ================= */
-const DEMO = !API_URL;
-const LS_KEY = 'callEval.v2';
-let DATA = [];
-let accessKey = localStorage.getItem('callEval.key') || '';
+/* ================= 상태 · 서버 통신 ================= */
+const SKEY='callEval.session';
+let SESSION=null, ME=null, DATA=[], MGRS=[], ADMINS=[];
+const $ = id => document.getElementById(id);
 
 async function api(action, payload={}){
-  if (DEMO){
-    let arr = []; try{ arr = JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch(e){}
-    if (action==='list') return arr;
-    if (action==='save'){
-      const rec = {...payload.rec};
-      const now = stamp(new Date());
-      if (!rec.id){ rec.id='E'+Date.now(); rec.created=now; }
-      rec.updated = now;
-      const i = arr.findIndex(r=>r.id===rec.id);
-      if (i>=0){ rec.created = arr[i].created; arr[i]=rec; } else arr.push(rec);
-      localStorage.setItem(LS_KEY, JSON.stringify(arr)); return rec;
-    }
-    if (action==='delete'){ arr = arr.filter(r=>r.id!==payload.id); localStorage.setItem(LS_KEY, JSON.stringify(arr)); return true; }
-  }
-  const body = JSON.stringify({action, key:accessKey, ...payload});
-  const res = await fetch(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body});
-  const j = await res.json();
-  if (!j.ok && j.error==='AUTH'){
-    const k = prompt(accessKey ? '비밀번호가 맞지 않습니다. 다시 입력하세요.' : '접속 비밀번호를 입력하세요.');
-    if (k===null) throw new Error('비밀번호가 필요합니다');
-    accessKey = k; localStorage.setItem('callEval.key', k);
-    return api(action, payload);
-  }
-  if (!j.ok) throw new Error(j.error||'서버 오류');
+  if(!API_URL) throw new Error('index.html 맨 위 API_URL에 Apps Script 주소를 넣어 주세요.');
+  const body = JSON.stringify({action, token:SESSION?.token, ...payload});
+  let j;
+  try{
+    const res = await fetch(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body});
+    j = await res.json();
+  }catch(e){ throw new Error('서버에 연결하지 못했습니다. 잠시 후 다시 시도하세요.'); }
+  if(!j.ok && j.error==='AUTH'){ logoutLocal('로그인이 만료됐습니다. 다시 로그인하세요.'); throw new Error('로그인이 필요합니다'); }
+  if(!j.ok) throw new Error(j.error||'서버 오류');
   return j.data;
 }
 
 function pad(n){return String(n).padStart(2,'0')}
-function stamp(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`}
-function today(){const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+/* 날짜는 모두 한국시간(KST) 기준 'YYYY-MM-DD' 글자로 다룹니다 — PC·구글 시간대와 무관 */
+function today(){const k=new Date(Date.now()+9*3600e3);return `${k.getUTCFullYear()}-${pad(k.getUTCMonth()+1)}-${pad(k.getUTCDate())}`}
+function normDate(v){
+  if(v instanceof Date) return `${v.getUTCFullYear()}-${pad(v.getUTCMonth()+1)}-${pad(v.getUTCDate())}`;
+  if(typeof v==='number' && v>20000 && v<80000){ const d=new Date(Math.round((v-25569)*864e5)); return normDate(d); }
+  const m=String(v??'').match(/(\d{4})\D*(\d{1,2})\D*(\d{1,2})/);
+  return m ? `${m[1]}-${pad(+m[2])}-${pad(+m[3])}` : '';
+}
+/* 입사월 = 1차월. 매월 1일에 다음 차월 */
+function monthNum(hire, date){
+  const a=String(hire||'').match(/^(\d{4})-(\d{2})/), b=String(date||today()).match(/^(\d{4})-(\d{2})/);
+  if(!a||!b) return null;
+  return (b[1]-a[1])*12 + (b[2]-a[2]) + 1;
+}
+function mgrMonth(m, date){
+  if(!m) return null;
+  if(m.hire) return monthNum(m.hire, date);
+  const k=parseInt(m.month); return isNaN(k)?null:k;
+}
+const monthLabel = n => n===null||n===undefined ? '미지정' : n<1 ? '입사 전' : `${n}차월`;
 const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num = v => (v===null||v===undefined||v===''||isNaN(v)) ? null : Number(v);
+const normName = s => String(s??'').replace(/\s+/g,'');
 function totalOf(r){ const s=(r.s||[]).map(num).filter(v=>v!==null); return s.length? s.reduce((a,b)=>a+b,0) : null; }
 const fmt1 = v => v===null||v===undefined||isNaN(v) ? '-' : (Math.round(v*10)/10).toString();
 const avg = a => { const v=a.filter(x=>x!==null&&x!==undefined&&!isNaN(x)); return v.length? v.reduce((p,c)=>p+c,0)/v.length : null; };
@@ -297,41 +370,83 @@ const callFmt = s => (s||'').replace('T',' ');
 function normalize(r){ return {...r, s:(r.s||[]).map(num), m:(r.m||[]).map(x=>x??''), total: totalOf(r)}; }
 function label(r){ return `${r.edate||''} · ${r.mgr}${r.month?` (${r.month})`:''}${r.ptn?` - ${r.ptn}`:''}${r.total!==null?` · ${r.total}점`:''}`; }
 function sorted(arr){ return [...arr].sort((a,b)=> (b.edate||'').localeCompare(a.edate||'') || (b.updated||'').localeCompare(a.updated||'')); }
+const isSuper = () => ME?.role==='최고관리자';
 
 let toastT;
-function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2200); }
-function busy(on){ document.getElementById('loading').classList.toggle('on', on); }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),3000); }
+function busy(on){ $('loading').classList.toggle('on', on); }
+async function run(fn){ busy(true); try{ return await fn(); } catch(e){ toast(e.message); } finally{ busy(false); } }
 
-async function load(){
+/* ================= 로그인 ================= */
+$('loginForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const name=$('lg-name').value.trim(), empno=$('lg-emp').value.trim(), pw=$('lg-pw').value;
+  $('lg-msg').textContent='';
+  if(!name||!empno||!pw){ $('lg-msg').textContent='이름·사번·비밀번호를 모두 입력하세요.'; return; }
   busy(true);
-  try{ DATA = (await api('list')).map(normalize); }
-  catch(e){ toast('불러오기 실패: '+e.message); }
+  try{
+    const d = await api('login',{name,empno,pw});
+    SESSION={token:d.token}; localStorage.setItem(SKEY, JSON.stringify(SESSION));
+    $('lg-pw').value='';
+    await boot();
+  }catch(err){ $('lg-msg').textContent=err.message; }
   finally{ busy(false); }
-  refreshAll();
+});
+function logoutLocal(msg){
+  SESSION=null; ME=null; DATA=[]; localStorage.removeItem(SKEY);
+  $('login').hidden=false; $('appHeader').hidden=true; $('app').hidden=true; $('pwBanner').hidden=true;
+  $('lg-msg').textContent=msg||'';
 }
+$('btnLogout').onclick=async()=>{ if(dirty && !confirm('작성 중인 내용이 사라집니다. 로그아웃할까요?')) return; try{ await api('logout'); }catch(e){} dirty=false; logoutLocal(''); };
+
+async function boot(){
+  const d = await api('init');
+  ME=d.user; DATA=(d.evals||[]).map(normalize); MGRS=d.managers||[]; ADMINS=d.admins||[];
+  $('login').hidden=true; $('appHeader').hidden=false; $('app').hidden=false;
+  $('whoami').innerHTML=`<b>${esc(ME.name)}</b> (${esc(ME.role)})`;
+  $('pwBanner').hidden=!ME.initPw;
+  $('navAdmin').hidden=!isSuper();
+  fillForm(null); show('input');
+}
+
+/* ================= 비밀번호 변경 ================= */
+function modal(html, wide){
+  $('modalHost').innerHTML=`<div class="modal"><div class="mbox${wide?' wide':''}">${html}</div></div>`;
+  return $('modalHost').firstChild;
+}
+const closeModal=()=>{ $('modalHost').innerHTML=''; };
+function openPw(){
+  const m=modal(`<h3>비밀번호 변경</h3>
+    <label>현재 비밀번호</label><input type="password" id="pw0">
+    <label>새 비밀번호 (4자 이상)</label><input type="password" id="pw1">
+    <label>새 비밀번호 확인</label><input type="password" id="pw2">
+    <div class="lmsg" id="pwMsg"></div>
+    <div class="mfoot"><button class="btn ghost" id="pwCancel">취소</button><button class="btn" id="pwOk">변경</button></div>`);
+  $('pw0').focus();
+  $('pwCancel').onclick=closeModal;
+  $('pwOk').onclick=async()=>{
+    const a=$('pw0').value,b=$('pw1').value,c=$('pw2').value;
+    if(b!==c){ $('pwMsg').textContent='새 비밀번호가 서로 다릅니다.'; return; }
+    busy(true);
+    try{ await api('changePw',{oldPw:a,newPw:b}); closeModal(); ME.initPw=false; $('pwBanner').hidden=true; toast('비밀번호를 바꿨습니다'); }
+    catch(e){ $('pwMsg').textContent=e.message; }
+    finally{ busy(false); }
+  };
+}
+$('btnPw').onclick=openPw; $('btnPw2').onclick=openPw;
 
 /* ================= 화면 전환 ================= */
-let view='input';
-document.getElementById('nav').addEventListener('click', e=>{
-  const b=e.target.closest('button'); if(!b) return; show(b.dataset.v);
-});
+$('nav').addEventListener('click', e=>{ const b=e.target.closest('button'); if(b) show(b.dataset.v); });
 function show(v){
-  view=v;
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
-  ['input','list','report','result'].forEach(k=>document.getElementById('v-'+k).hidden = k!==v);
+  ['input','list','report','result','admin'].forEach(k=>$('v-'+k).hidden = k!==v);
   refreshAll(); window.scrollTo(0,0);
 }
-function refreshAll(){ renderList(); renderReportSel(); renderReport(); renderResult(); }
-
-document.getElementById('mode').innerHTML = DEMO
-  ? '<b>데모 모드</b> · 이 브라우저에만 저장됩니다'
-  : '서버 연결됨 · 구글 시트 저장';
+function refreshAll(){ renderList(); renderReportSel(); renderReport(); renderResult(); if(isSuper()) renderAdmin(); }
 
 /* ================= 입력 폼 ================= */
-const centerOpts = (all) => (all?'<option value="">전체</option>':'<option value="">선택</option>') + CENTERS.map(c=>`<option>${c}</option>`).join('');
-document.getElementById('f-center').innerHTML = centerOpts(false);
-document.getElementById('l-center').innerHTML = centerOpts(true);
-document.getElementById('s-center').innerHTML = centerOpts(true);
+const centerOpts = first => `<option value="">${first}</option>` + CENTERS.map(c=>`<option>${c}</option>`).join('');
+$('f-center').innerHTML = centerOpts('전체'); $('l-center').innerHTML = centerOpts('전체'); $('s-center').innerHTML = centerOpts('전체');
 
 (function buildForm(){
   let html='';
@@ -345,12 +460,12 @@ document.getElementById('s-center').innerHTML = centerOpts(true);
         <input type="number" min="0" max="${it.p}" step="0.5" id="s${i}" data-i="${i}" placeholder="-"></td>
       <td class="memo"><textarea id="m${i}" placeholder="근거가 된 발화"></textarea></td></tr>`;
   });
-  const tb=document.getElementById('formBody'); tb.innerHTML=html;
+  const tb=$('formBody'); tb.innerHTML=html;
   tb.addEventListener('click', e=>{
     const c=e.target.closest('.chip'); if(!c) return;
-    const inp=document.getElementById('s'+c.dataset.i);
+    const inp=$('s'+c.dataset.i);
     inp.value = (inp.value!=='' && Number(inp.value)===Number(c.dataset.v)) ? '' : c.dataset.v;
-    onScore(); markDirty();
+    onScore(); dirty=true;
   });
   tb.addEventListener('input', e=>{
     if(e.target.matches('input[type=number]')){
@@ -358,121 +473,139 @@ document.getElementById('s-center').innerHTML = centerOpts(true);
       if(v!=='' && (Number(v)<0 || Number(v)>ITEMS[i].p)){ e.target.value=''; toast(`${i+1}번 항목은 0~${ITEMS[i].p}점까지 입력할 수 있어요`); }
       onScore();
     }
-    markDirty();
+    dirty=true;
   });
 })();
-['f-center','f-month','f-mgr','f-ptn','f-calldt','f-evr','f-edate'].forEach(id=>document.getElementById(id).addEventListener('input', markDirty));
+['f-ptnCode','f-ptn','f-calldt'].forEach(id=>$(id).addEventListener('input', ()=>dirty=true));
 
-let editing=null, dirty=false;
-function markDirty(){ dirty=true; }
+let editing=null, editRec=null, dirty=false;
+function mgrOptions(selEmp){
+  const c=$('f-center').value, mo=$('f-month').value, ed=$('f-edate').value||today(), want=parseInt(mo);
+  const mm = m => mgrMonth(m, ed);
+  let list=MGRS.filter(m=>(!c||m.center===c) && mo && (mm(m)===want || mm(m)===null))
+    .sort((a,b)=>(a.center||'').localeCompare(b.center||'')||(mm(a)===null)-(mm(b)===null)||a.name.localeCompare(b.name));
+  let html='<option value="">'+(!MGRS.length?'명단 없음 — 최고관리자에게 요청':!mo?'차월을 먼저 선택하세요':list.length?'선택':`${mo} 지점장이 없습니다`)+'</option>';
+  const groups={};
+  list.forEach(m=>{ const g=(m.center||'센터 미지정')+(mm(m)===null?' · 입사일 미등록':''); (groups[g]=groups[g]||[]).push(m); });
+  Object.keys(groups).forEach(g=>{ html+=`<optgroup label="${esc(g)}">`+groups[g].map(m=>`<option value="${esc(m.empno)}">${esc(m.name)} (${esc(m.empno)})</option>`).join('')+'</optgroup>'; });
+  if(editRec && editRec.mgrEmp && !MGRS.some(m=>m.empno===editRec.mgrEmp))
+    html+=`<option value="${esc(editRec.mgrEmp)}">(명단 외) ${esc(editRec.mgr)} (${esc(editRec.mgrEmp)})</option>`;
+  $('f-mgr').innerHTML=html;
+  if(selEmp && [...$('f-mgr').options].some(o=>o.value===selEmp)) $('f-mgr').value=selEmp;
+}
+$('f-center').addEventListener('change', ()=>{ const cur=$('f-mgr').value; mgrOptions(cur); onMgr(); dirty=true; });
+$('f-month').addEventListener('change', ()=>{ const cur=$('f-mgr').value; mgrOptions(cur); onMgr(); dirty=true; });
+$('f-edate').addEventListener('change', ()=>{
+  const cur=$('f-mgr').value, m=MGRS.find(x=>x.empno===cur), n=mgrMonth(m, $('f-edate').value||today());
+  if(m && (n===2||n===3) && $('f-month').value!==`${n}차월`){ $('f-month').value=`${n}차월`; toast(`평가일 기준으로 ${m.name} 지점장은 ${n}차월입니다`); }
+  mgrOptions(cur);
+  if(cur && !$('f-mgr').value) toast('평가일 기준으로 2~3차월이 아니어서 지점장 선택이 해제됐어요');
+  onMgr(); dirty=true;
+});
+$('f-mgr').addEventListener('change', ()=>{ onMgr(true); dirty=true; });
+function onMgr(fromUser){
+  const e=$('f-mgr').value, m=MGRS.find(x=>x.empno===e);
+  $('f-mgrEmp').value=e||'';
+  if(m && fromUser && m.center && $('f-center').value!==m.center){ $('f-center').value=m.center; mgrOptions(e); }
+}
 function onScore(){
   let t=0, n=0;
   for(let i=0;i<N;i++){
-    const inp=document.getElementById('s'+i), v=num(inp.value);
+    const inp=$('s'+i), v=num(inp.value);
     if(v!==null){t+=v;n++;}
     inp.closest('td').querySelectorAll('.chip').forEach(c=>c.classList.toggle('on', v!==null && Number(c.dataset.v)===v));
   }
-  document.getElementById('f-total').textContent = Math.round(t*10)/10;
-  document.getElementById('f-filled').textContent = `${n} / ${N} 항목 입력`;
+  $('f-total').textContent = Math.round(t*10)/10;
+  $('f-filled').textContent = `${n} / ${N} 항목 입력`;
 }
 function fillForm(r){
-  editing = r ? r.id : null;
-  const g=id=>document.getElementById(id);
-  g('f-center').value=r?.center||''; g('f-month').value=r?.month||''; g('f-mgr').value=r?.mgr||''; g('f-ptn').value=r?.ptn||'';
-  g('f-calldt').value=(r?.calldt||'').replace(' ','T'); g('f-evr').value=r?.evr ?? (localStorage.getItem('callEval.evr')||'');
-  g('f-edate').value=r?.edate||today();
-  for(let i=0;i<N;i++){ g('s'+i).value = r && r.s[i]!==null && r.s[i]!==undefined ? r.s[i] : ''; g('m'+i).value = r?.m[i]||''; }
-  g('formTitle').textContent = r ? `평가 수정 — ${r.mgr} (${r.month||'차월 미입력'})` : '새 평가 입력';
-  g('btnDelete').style.display = r ? '' : 'none';
+  editing = r ? r.id : null; editRec = r||null;
+  $('f-center').value = r ? (r.center||'') : '';
+  $('f-month').value = r?.month||'';
+  $('f-edate').value = r?.edate||today();
+  mgrOptions(r?.mgrEmp||'');
+  $('f-mgrEmp').value = r?.mgrEmp||'';
+  $('f-ptnCode').value=r?.ptnCode||''; $('f-ptn').value=r?.ptn||'';
+  $('f-calldt').value=(r?.calldt||'').replace(' ','T'); $('f-evr').value=r ? r.evr : (ME?.name||'');
+  for(let i=0;i<N;i++){ $('s'+i).value = r && r.s[i]!==null && r.s[i]!==undefined ? r.s[i] : ''; $('m'+i).value = r?.m[i]||''; }
+  $('formTitle').textContent = r ? `평가 수정 — ${r.mgr} (${r.month||'차월 미입력'})` : '새 평가 입력';
+  $('btnDelete').hidden = !r;
   onScore(); dirty=false;
 }
 function readForm(){
-  const g=id=>document.getElementById(id).value.trim();
-  return { id:editing||'', center:g('f-center'), month:g('f-month'), mgr:g('f-mgr'), ptn:g('f-ptn'),
-    calldt:g('f-calldt').replace('T',' '), evr:g('f-evr'), edate:g('f-edate'),
-    s:ITEMS.map((_,i)=>num(document.getElementById('s'+i).value)),
-    m:ITEMS.map((_,i)=>document.getElementById('m'+i).value.trim()) };
+  const g=id=>$(id).value.trim(), e=g('f-mgr');
+  const m=MGRS.find(x=>x.empno===e) || (editRec && editRec.mgrEmp===e ? {name:editRec.mgr, center:editRec.center} : {});
+  return { id:editing||'', center:m.center||g('f-center'), month:g('f-month'), mgrEmp:e, mgr:m.name||'', ptnCode:g('f-ptnCode'), ptn:g('f-ptn'),
+    calldt:g('f-calldt').replace('T',' '), edate:g('f-edate'),
+    s:ITEMS.map((_,i)=>num($('s'+i).value)), m:ITEMS.map((_,i)=>$('m'+i).value.trim()) };
 }
-document.getElementById('btnReset').onclick=()=>{ if(dirty && !confirm('작성 중인 내용이 사라집니다. 새로 작성할까요?')) return; fillForm(null); };
-document.getElementById('btnSave').onclick=async()=>{
+function mergeRec(rec){ const n=normalize(rec); const i=DATA.findIndex(r=>r.id===n.id); if(i>=0) DATA[i]=n; else DATA.push(n); return n; }
+$('btnReset').onclick=()=>{ if(dirty && !confirm('작성 중인 내용이 사라집니다. 새로 작성할까요?')) return; fillForm(null); };
+$('btnSave').onclick=()=>{
   const rec=readForm();
-  const miss=[]; if(!rec.center)miss.push('센터'); if(!rec.month)miss.push('차월'); if(!rec.mgr)miss.push('지점장');
-  if(miss.length){ toast(miss.join('·')+'을(를) 입력하세요'); return; }
+  const miss=[]; if(!rec.mgrEmp)miss.push('지점장'); if(!rec.month)miss.push('차월');
+  if(miss.length){ toast(miss.join('·')+'을(를) 선택하세요'); return; }
   const empty = rec.s.map((v,i)=>v===null?i+1:null).filter(Boolean);
   if(empty.length && !confirm(`점수가 비어 있는 항목이 있어요: ${empty.join(', ')}번\n그래도 저장할까요?`)) return;
-  busy(true);
-  try{
-    const saved = normalize(await api('save',{rec}));
-    if(rec.evr) localStorage.setItem('callEval.evr', rec.evr);
-    const i=DATA.findIndex(r=>r.id===saved.id); if(i>=0) DATA[i]=saved; else DATA.push(saved);
-    toast(editing?'수정했습니다':'저장했습니다');
-    fillForm(null); refreshAll();
-  }catch(e){ toast('저장 실패: '+e.message); }
-  finally{ busy(false); }
+  run(async()=>{
+    const r = await api('save',{rec});
+    if(!r.ok) throw new Error('저장 실패: '+r.error);
+    mergeRec(r.rec); toast(editing?'수정했습니다':'저장했습니다'); fillForm(null); refreshAll();
+  });
 };
-document.getElementById('btnDelete').onclick=async()=>{
+$('btnDelete').onclick=()=>{
   if(!editing) return;
-  const r=DATA.find(x=>x.id===editing);
-  if(!confirm(`${r?.mgr||''} 평가를 삭제할까요? 되돌릴 수 없습니다.`)) return;
-  busy(true);
-  try{ await api('delete',{id:editing}); DATA=DATA.filter(x=>x.id!==editing); toast('삭제했습니다'); fillForm(null); refreshAll(); }
-  catch(e){ toast('삭제 실패: '+e.message); }
-  finally{ busy(false); }
+  if(!confirm(`${editRec?.mgr||''} 평가를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+  run(async()=>{ await api('delete',{id:editing}); DATA=DATA.filter(x=>x.id!==editing); toast('삭제했습니다'); fillForm(null); refreshAll(); });
 };
 window.addEventListener('beforeunload', e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
 
 /* ================= 목록 ================= */
 function listFiltered(){
-  const m=document.getElementById('l-month').value, c=document.getElementById('l-center').value, q=document.getElementById('l-q').value.trim();
-  return sorted(DATA).filter(r=>(!m||r.month===m)&&(!c||r.center===c)&&(!q||[r.mgr,r.ptn,r.evr].some(x=>(x||'').includes(q))));
+  const m=$('l-month').value, c=$('l-center').value, q=$('l-q').value.trim();
+  return sorted(DATA).filter(r=>(!m||r.month===m)&&(!c||r.center===c)&&(!q||[r.mgr,r.ptn,r.ptnCode,r.evr].some(x=>(x||'').includes(q))));
 }
-['l-month','l-center','l-q'].forEach(id=>document.getElementById(id).addEventListener('input', renderList));
-function gradeCls(t){ return t===null?'':t>=90?'g-hi':t<60?'g-lo':''; }
+['l-month','l-center','l-q'].forEach(id=>$(id).addEventListener('input', renderList));
+const gradeCls = t => t===null?'':t>=90?'g-hi':t<60?'g-lo':'';
 function renderList(){
   const rows=listFiltered();
-  document.getElementById('listBody').innerHTML = rows.length ? rows.map(r=>`<tr>
+  $('listBody').innerHTML = rows.length ? rows.map(r=>`<tr>
     <td class="num">${esc(r.edate)}</td><td class="num">${esc(r.center)}</td>
     <td class="num">${r.month?`<span class="tag ${r.month==='2차월'?'t2':'t3'}">${esc(r.month)}</span>`:'-'}</td>
-    <td><b>${esc(r.mgr)}</b></td><td>${esc(r.ptn)}</td><td class="num">${esc(callFmt(r.calldt))}</td><td class="num">${esc(r.evr)}</td>
+    <td><b>${esc(r.mgr)}</b> <span class="hint">${esc(r.mgrEmp)}</span></td><td class="num">${esc(r.ptnCode)}</td><td>${esc(r.ptn)}</td><td class="num">${esc(r.evr)}</td>
     <td class="num ${gradeCls(r.total)}">${r.total??'-'}</td>
     <td class="num" style="white-space:nowrap"><button class="btn sm ghost" data-a="rep" data-id="${r.id}">리포트</button>
       <button class="btn sm ghost" data-a="edit" data-id="${r.id}">수정</button></td></tr>`).join('')
     : `<tr><td colspan="9" class="empty">평가가 없습니다. '평가 입력'에서 추가하세요.</td></tr>`;
 }
-document.getElementById('listBody').addEventListener('click', e=>{
+$('listBody').addEventListener('click', e=>{
   const b=e.target.closest('button'); if(!b) return;
   const r=DATA.find(x=>x.id===b.dataset.id); if(!r) return;
   if(b.dataset.a==='edit'){ if(dirty && !confirm('작성 중인 내용이 사라집니다. 계속할까요?')) return; fillForm(r); show('input'); }
-  else { document.getElementById('r-sel').value=r.id; show('report'); }
+  else { $('r-sel').value=r.id; show('report'); }
 });
-document.getElementById('btnCsv').onclick=()=>{
+$('btnCsv').onclick=()=>{
   const rows=listFiltered();
-  const head=['평가일','센터','차월','지점장','파트너스명','통화일시','평가자',...SHORT.map((s,i)=>`${i+1}.${s}(${ITEMS[i].p})`),'합계',...SHORT.map((s,i)=>`메모${i+1}.${s}`)];
+  const head=['평가일','센터','차월','지점장사번','지점장','파트너스코드','파트너스명','통화일시','평가자',...SHORT.map((s,i)=>`${i+1}.${s}(${ITEMS[i].p})`),'합계',...SHORT.map((s,i)=>`메모${i+1}.${s}`)];
   const q=v=>{ v=String(v??''); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
-  const lines=[head.map(q).join(',')].concat(rows.map(r=>[r.edate,r.center,r.month,r.mgr,r.ptn,callFmt(r.calldt),r.evr,...r.s.map(v=>v??''),r.total??'',...r.m].map(q).join(',')));
-  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`콜평가_${today()}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  const lines=[head.map(q).join(',')].concat(rows.map(r=>[r.edate,r.center,r.month,r.mgrEmp,r.mgr,r.ptnCode,r.ptn,callFmt(r.calldt),r.evr,...r.s.map(v=>v??''),r.total??'',...r.m].map(q).join(',')));
+  download(new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}), `콜평가_목록_${today()}.csv`);
 };
-document.getElementById('btnPrintAll').onclick=()=>{
-  const rows=listFiltered(); if(!rows.length){ toast('인쇄할 평가가 없습니다'); return; }
-  doPrint(rows.map(reportHTML).join(''));
-};
+$('btnPrintAll').onclick=()=>{ const rows=listFiltered(); if(!rows.length){ toast('인쇄할 평가가 없습니다'); return; } doPrint(rows.map(reportHTML).join('')); };
+$('btnXlsAll').onclick=()=>{ const rows=listFiltered(); if(!rows.length){ toast('다운로드할 평가가 없습니다'); return; } run(()=>downloadEvalBook(rows, 0, `콜평가_평가시트_${today()}.xlsx`)); };
 
 /* ================= 개인 리포트 ================= */
 function renderReportSel(){
-  const sel=document.getElementById('r-sel'), cur=sel.value;
+  const sel=$('r-sel'), cur=sel.value;
   sel.innerHTML = DATA.length ? sorted(DATA).map(r=>`<option value="${r.id}">${esc(label(r))}</option>`).join('') : '<option value="">평가가 없습니다</option>';
   if(cur && DATA.some(r=>r.id===cur)) sel.value=cur;
 }
-document.getElementById('r-sel').addEventListener('change', renderReport);
-function renderReport(){
-  const r=DATA.find(x=>x.id===document.getElementById('r-sel').value);
-  document.getElementById('reportBox').innerHTML = r ? reportHTML(r) : '<div class="card empty">평가를 선택하세요.</div>';
-}
+$('r-sel').addEventListener('change', renderReport);
+const curReport = () => DATA.find(x=>x.id===$('r-sel').value);
+function renderReport(){ const r=curReport(); $('reportBox').innerHTML = r ? reportHTML(r) : '<div class="card empty">평가를 선택하세요.</div>'; }
 function reportHTML(r){
   const peers = DATA.filter(x=>x.month && x.month===r.month);
   const itemAvg = i => avg(peers.map(x=>x.s[i]));
-  const totAvg = avg(peers.map(x=>x.total));
   const ranked = peers.filter(x=>x.total!==null);
   const rank = r.total!==null && r.month ? ranked.filter(x=>x.total>r.total).length+1 : null;
   let rows='';
@@ -485,35 +618,30 @@ function reportHTML(r){
   });
   return `<div class="report">
     <h3>2~3차월 콜 평가표</h3>
-    <table class="info"><tr><th>센터</th><th>차월</th><th>지점장</th><th>파트너스명</th><th>통화일시</th><th>평가자</th><th>평가일</th></tr>
-      <tr><td>${esc(r.center)}</td><td style="color:var(--red)">${esc(r.month)}</td><td>${esc(r.mgr)}</td><td>${esc(r.ptn)}</td>
+    <table class="info"><tr><th>센터</th><th>차월</th><th>지점장</th><th>지점장 사번</th><th>파트너스코드</th><th>파트너스명</th><th>통화일시</th><th>평가자</th><th>평가일</th></tr>
+      <tr><td>${esc(r.center)}</td><td style="color:var(--red)">${esc(r.month)}</td><td>${esc(r.mgr)}</td><td>${esc(r.mgrEmp)}</td><td>${esc(r.ptnCode)}</td><td>${esc(r.ptn)}</td>
       <td>${esc(callFmt(r.calldt))}</td><td>${esc(r.evr)}</td><td>${esc(r.edate)}</td></tr></table>
     <div style="height:10px"></div>
-    <table class="ev"><colgroup><col style="width:13%"><col style="width:33%"><col style="width:17%"><col style="width:5%"><col style="width:6%"><col style="width:6%"><col style="width:20%"></colgroup><thead><tr><th>구분</th><th>평가 항목</th><th>판단 기준 · 실제 사례</th><th>배점</th><th>점수</th><th>차월<br>평균</th><th>평가 메모 (근거가 된 발화)</th></tr></thead>
+    <table class="ev"><colgroup><col style="width:13%"><col style="width:33%"><col style="width:17%"><col style="width:5%"><col style="width:6%"><col style="width:6%"><col style="width:20%"></colgroup>
+    <thead><tr><th>구분</th><th>평가 항목</th><th>판단 기준 · 실제 사례</th><th>배점</th><th>점수</th><th>차월<br>평균</th><th>평가 메모 (근거가 된 발화)</th></tr></thead>
     <tbody>${rows}
-      <tr class="tot"><td colspan="3">합계</td><td>${MAXP}</td><td class="score">${r.total??'-'}</td><td>${r.month?fmt1(totAvg):'-'}</td>
+      <tr class="tot"><td colspan="3">합계</td><td>${MAXP}</td><td class="score">${r.total??'-'}</td><td>${r.month?fmt1(avg(peers.map(x=>x.total))):'-'}</td>
       <td>${rank?`${esc(r.month)} ${rank}위 / ${ranked.length}명 중`:''}</td></tr></tbody></table>
     <div class="foot">※ 차월 평균은 같은 차월 평가 전체의 평균, 순위는 같은 차월 내 합계 기준입니다. (출력일 ${today()})</div>
   </div>`;
 }
-document.getElementById('btnPrintOne').onclick=()=>{
-  const r=DATA.find(x=>x.id===document.getElementById('r-sel').value); if(!r){toast('평가를 선택하세요');return;}
-  doPrint(reportHTML(r));
-};
-document.getElementById('btnEditFromReport').onclick=()=>{
-  const r=DATA.find(x=>x.id===document.getElementById('r-sel').value); if(!r) return;
-  if(dirty && !confirm('작성 중인 내용이 사라집니다. 계속할까요?')) return;
-  fillForm(r); show('input');
-};
+$('btnPrintOne').onclick=()=>{ const r=curReport(); if(!r){toast('평가를 선택하세요');return;} doPrint(reportHTML(r)); };
+$('btnXlsOne').onclick=()=>{ const r=curReport(); if(!r){toast('평가를 선택하세요');return;} run(()=>downloadEvalBook([r], 0, `콜평가_${r.mgr}_${r.edate||today()}.xlsx`)); };
+$('btnEditFromReport').onclick=()=>{ const r=curReport(); if(!r) return; if(dirty && !confirm('작성 중인 내용이 사라집니다. 계속할까요?')) return; fillForm(r); show('input'); };
 
 /* ================= 전체 결과 ================= */
-['s-month','s-center'].forEach(id=>document.getElementById(id).addEventListener('input', renderResult));
-function renderResult(){ document.getElementById('resultBox').innerHTML = resultHTML(); }
+['s-month','s-center'].forEach(id=>$(id).addEventListener('input', renderResult));
+function renderResult(){ $('resultBox').innerHTML = resultHTML(); }
 function resultHTML(){
-  const fm=document.getElementById('s-month').value, fc=document.getElementById('s-center').value;
+  const fm=$('s-month').value, fc=$('s-center').value;
   const valid = DATA.filter(r=>MONTHS.includes(r.month));
   const sel = valid.filter(r=>(!fm||r.month===fm)&&(!fc||r.center===fc))
-                   .sort((a,b)=>CENTERS.indexOf(a.center)-CENTERS.indexOf(b.center)||a.month.localeCompare(b.month)||(a.mgr||'').localeCompare(b.mgr||''));
+    .sort((a,b)=>CENTERS.indexOf(a.center)-CENTERS.indexOf(b.center)||a.month.localeCompare(b.month)||(a.mgr||'').localeCompare(b.mgr||''));
   const tots = a => a.map(r=>r.total).filter(v=>v!==null);
   const statCard = (k, arr) => { const t=tots(arr); return `<div class="stat"><div class="k">${k}</div>
       <div class="v">${t.length?fmt1(avg(t)):'-'}<span style="font-size:13px;color:var(--muted)"> 점</span></div>
@@ -521,8 +649,6 @@ function resultHTML(){
   const filterName = `${fm||'전체 차월'} · ${fc||'전체 센터'}`;
   let h = `<div class="stats">${statCard('2차월 평균',valid.filter(r=>r.month==='2차월'))}${statCard('3차월 평균',valid.filter(r=>r.month==='3차월'))}
     ${statCard('전체 평균',valid)}${statCard('선택: '+filterName, sel)}</div>`;
-
-  // 센터별
   h += `<div class="card"><h2>센터별 · 차월별 통계</h2><div class="matrix"><table><thead><tr><th>센터</th><th>2차월 인원</th><th>2차월 평균</th><th>3차월 인원</th><th>3차월 평균</th><th>합계 인원</th><th>합계 평균</th></tr></thead><tbody>`;
   CENTERS.forEach(c=>{
     const a2=tots(valid.filter(r=>r.center===c&&r.month==='2차월')), a3=tots(valid.filter(r=>r.center===c&&r.month==='3차월')), all=a2.concat(a3);
@@ -530,11 +656,10 @@ function resultHTML(){
         <td class="avg">${all.length||'-'}</td><td class="avg">${fmt1(avg(all))}</td></tr>`;
   });
   h += `</tbody></table></div></div>`;
-
-  // 사람별 매트릭스 (엑셀 결과표 형식)
   h += `<div class="card"><h2>사람별 점수 — ${esc(filterName)} (${sel.length}명)</h2><div class="matrix"><table><thead>`;
   const ph = (lab, f) => `<tr><th colspan="3" style="text-align:right">${lab}</th><th></th><th></th><th></th>${sel.map(r=>`<td class="ph">${f(r)}</td>`).join('')}</tr>`;
-  h += ph('센터', r=>esc(r.center)) + ph('차월', r=>`<span style="color:var(--red)">${esc(r.month)}</span>`) + ph('지점장', r=>`<b>${esc(r.mgr)}</b>`) + ph('파트너스명', r=>esc(r.ptn)) + ph('평가일', r=>esc(r.edate));
+  h += ph('센터', r=>esc(r.center)) + ph('사번', r=>esc(r.mgrEmp)) + ph('지점장', r=>`<b>${esc(r.mgr)}</b>`) + ph('차월', r=>`<span style="color:var(--red)">${esc(r.month)}</span>`)
+     + ph('파트너스', r=>esc(r.ptn)) + ph('평가자', r=>esc(r.evr));
   h += `<tr><th>구분</th><th>평가 항목</th><th>배점</th><th>2차월<br>평균</th><th>3차월<br>평균</th><th>전체<br>평균</th>${sel.map(()=>'<th>점수</th>').join('')}</tr></thead><tbody>`;
   const A = (m,i) => avg(valid.filter(r=>!m||r.month===m).map(r=> i===null ? r.total : r.s[i]));
   ITEMS.forEach((it,i)=>{
@@ -552,20 +677,417 @@ function resultHTML(){
   if(noMonth) h += `<div class="hint">※ 차월이 입력되지 않은 평가 ${noMonth}건은 통계에서 제외됐습니다.</div>`;
   return h;
 }
-document.getElementById('btnPrintResult').onclick=()=>{
-  doPrint(`<div class="report wide"><h3>2~3차월 콜 평가 결과 <span style="font-size:12px;color:var(--muted);font-weight:400">(출력일 ${today()})</span></h3>${resultHTML()}</div>`);
+$('btnPrintResult').onclick=()=>doPrint(`<div class="report wide"><h3>2~3차월 콜 평가 결과 <span style="font-size:12px;color:var(--muted);font-weight:400">(출력일 ${today()})</span></h3>${resultHTML()}</div>`);
+
+/* ================= 인쇄 · 다운로드 ================= */
+function doPrint(html){ $('printArea').innerHTML=html; setTimeout(()=>window.print(), 50); }
+window.addEventListener('afterprint', ()=>{ $('printArea').innerHTML=''; });
+function download(blob, name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000); }
+
+/* ================= 엑셀 (ExcelJS) ================= */
+let xlP=null;
+function loadXL(){
+  if(window.ExcelJS) return Promise.resolve();
+  return xlP ||= new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=XLSX_LIB; s.onload=ok;
+    s.onerror=()=>{ xlP=null; no(new Error('엑셀 기능을 불러오지 못했습니다. 인터넷 연결(회사 보안망)을 확인하세요.')); }; document.head.appendChild(s); });
+}
+const XC={navy:'FF1E2761', light:'FFE8EFFA', pale:'FFF4F6FA', yel:'FFFFFFCC', green:'FFE2EFDA', red:'FFC00000', gray:'FF5A5F6B', white:'FFFFFFFF'};
+const BORDER=(()=>{const s={style:'thin',color:{argb:'FFB4BCCC'}};return {top:s,left:s,bottom:s,right:s};})();
+function sty(c, o={}){
+  c.font={name:'맑은 고딕', size:o.size||10, bold:!!o.bold, color:{argb:o.color||'FF000000'}};
+  if(o.fill) c.fill={type:'pattern',pattern:'solid',fgColor:{argb:o.fill}};
+  c.alignment={vertical:'middle', horizontal:o.h||'left', wrapText:true};
+  if(o.border!==false) c.border=BORDER;
+  if(o.fmt) c.numFmt=o.fmt;
+}
+function safeSheetName(s, used){
+  let b=String(s).replace(/[\[\]:*?\/\\]/g,'').slice(0,28)||'평가'; let n=b, k=2;
+  while(used.has(n)) n=`${b.slice(0,26)}_${k++}`; used.add(n); return n;
+}
+const LIST_SHEET='지점장명단', GUIDE_SHEET='작성안내';
+const XROW={info:3, head:9, item0:10}; // 정보 3~7행, 표 머리 9행, 항목 10~24행, 합계 25행
+const xlDate = d => { const m=String(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(Date.UTC(+m[1],m[2]-1,+m[3])) : null; };
+
+function addEvalSheet(wb, name, r, nMgr){
+  const ws=wb.addWorksheet(name,{views:[{showGridLines:false}],
+    pageSetup:{paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1, margins:{left:.4,right:.4,top:.5,bottom:.5,header:.2,footer:.2}}});
+  ws.columns=[{width:17},{width:48},{width:28},{width:7},{width:8},{width:40},{width:2},{width:22}];
+  ws.mergeCells('A1:F1'); ws.getCell('A1').value='2~3차월 콜 평가표'; sty(ws.getCell('A1'),{size:16,bold:true,color:XC.navy,border:false});
+  ws.getRow(1).height=28;
+  ws.mergeCells('A2:F2'); ws.getCell('A2').value='노란 칸만 입력하세요. 지점장을 고르면 사번·센터·입사일이 채워지고, 차월은 평가일 기준으로 자동 계산됩니다. 평가자는 업로드한 사람으로 자동 기록됩니다.';
+  sty(ws.getCell('A2'),{size:9,color:XC.gray,border:false});
+  const L=`'${LIST_SHEET}'`, last=Math.max(2,nMgr+1);
+  const ix = col => `INDEX(${L}!$${col}$2:$${col}$${last},MATCH($B$4,${L}!$B$2:$B$${last},0))`;
+  const lk = col => `IFERROR(IF(${ix(col)}="","",${ix(col)}),"")`;
+  const ED = 'IF($B$3="",TODAY(),$B$3)';
+  const mg = r ? MGRS.find(x=>x.empno===r.mgrEmp) : null;
+  const info=[
+    ['평가일', xlDate(r?.edate||today()), '센터', {formula:lk('C'), result:r?.center||''}],
+    ['지점장', r?.mgr||'', '지점장사번', {formula:lk('A'), result:r?.mgrEmp||''}],
+    ['차월', {formula:`IF($B$4="","",IF($D$5="",${lk('E')}&"",((YEAR(${ED})-YEAR($D$5))*12+MONTH(${ED})-MONTH($D$5)+1)&"차월"))`, result:r?.month||''},
+     '입사일', {formula:lk('D'), result: mg?.hire ? xlDate(mg.hire) : ''}],
+    ['파트너스코드', r?.ptnCode||'', '파트너스명', r?.ptn||''],
+    ['통화일시', callFmt(r?.calldt)||'', '평가자', r?.evr||'(업로드한 사람)'],
+  ];
+  info.forEach((row,k)=>{
+    const R=XROW.info+k; ws.getRow(R).height=22;
+    ws.mergeCells(`D${R}:F${R}`);
+    const a=ws.getCell(`A${R}`), b=ws.getCell(`B${R}`), c=ws.getCell(`C${R}`), d=ws.getCell(`D${R}`);
+    a.value=row[0]; c.value=row[2]; b.value=row[1]; d.value=row[3];
+    sty(a,{bold:true,fill:XC.pale,color:XC.navy,h:'center'}); sty(c,{bold:true,fill:XC.pale,color:XC.navy,h:'center'});
+    const auto = [[false,true],[false,true],[true,true],[false,false],[false,true]][k];
+    sty(b,{bold:true,fill:auto[0]?XC.light:XC.yel,h:'center',fmt:k===0?'yyyy-mm-dd':'@'});
+    sty(d,{bold:true,fill:auto[1]?XC.light:XC.yel,h:'center',fmt:k===2?'yyyy-mm-dd':'@'});
+    ['E','F'].forEach(x=>{ ws.getCell(`${x}${R}`).border=BORDER; });
+  });
+  ws.getCell('B3').dataValidation={type:'date',operator:'greaterThan',allowBlank:true,formulae:[new Date(Date.UTC(2020,0,1))],showErrorMessage:true,errorTitle:'평가일',error:'날짜를 2026-11-18 처럼 입력하세요'};
+  ws.getCell('B4').dataValidation={type:'list',allowBlank:true,showErrorMessage:false,formulae:[`${L}!$G$2:$G$${last}`]};
+  const H=XROW.head;
+  ['구분','평가 항목 (무엇을 봤는지)','판단 기준 · 실제 사례','배점','점수','평가 메모 (근거가 된 발화)'].forEach((t,j)=>{
+    const c=ws.getRow(H).getCell(j+1); c.value=t; sty(c,{bold:true,color:XC.white,fill:XC.navy,h:'center'}); });
+  ws.getRow(H).height=24;
+  let ci0=0;
+  CATS.forEach(cat=>{
+    const r1=XROW.item0+ci0, r2=r1+cat.n-1;
+    if(cat.n>1) ws.mergeCells(`A${r1}:A${r2}`);
+    const c=ws.getCell(`A${r1}`); c.value=cat.name; sty(c,{bold:true,color:XC.navy,fill:cat.bonus?XC.green:XC.light,h:'center'});
+    for(let k=r1;k<=r2;k++) ws.getCell(`A${k}`).border=BORDER;
+    ci0+=cat.n;
+  });
+  ITEMS.forEach((it,i)=>{
+    const R=XROW.item0+i, row=ws.getRow(R); row.height=Math.max(32, Math.ceil(it.t.length/34)*15);
+    const b=row.getCell(2), c=row.getCell(3), d=row.getCell(4), e=row.getCell(5), f=row.getCell(6);
+    b.value=it.t; c.value=it.c; d.value=it.p;
+    const sv=r?.s?.[i]; e.value=(sv===null||sv===undefined)?null:sv; f.value=r?.m?.[i]||'';
+    sty(b,{bold:true,color:XC.navy}); sty(c,{size:9,color:XC.gray}); sty(d,{bold:true,h:'center'});
+    sty(e,{bold:true,size:12,color:XC.red,fill:XC.yel,h:'center'}); sty(f,{size:9.5,fill:XC.yel});
+    e.dataValidation={type:'decimal',operator:'between',allowBlank:true,formulae:[0,it.p],showErrorMessage:true,errorTitle:'점수',error:`0 ~ ${it.p}점 사이로 입력하세요`};
+  });
+  const T=XROW.item0+N; ws.mergeCells(`A${T}:C${T}`);
+  ws.getCell(`A${T}`).value='합계 (100점 만점)';
+  ws.getCell(`D${T}`).value={formula:`SUM(D${XROW.item0}:D${T-1})`, result:MAXP};
+  ws.getCell(`E${T}`).value={formula:`IF(COUNT(E${XROW.item0}:E${T-1})=0,"",SUM(E${XROW.item0}:E${T-1}))`, result:r?.total??''};
+  ['A','B','C','D','E','F'].forEach(x=>sty(ws.getCell(`${x}${T}`),{bold:true,size:12,color:x==='E'?'FFFFE699':XC.white,fill:XC.navy,h:'center'}));
+  ws.getRow(T).height=26;
+  ws.getCell('H1').value='평가ID (지우지 마세요)'; ws.getCell('H2').value=r?.id||'';
+  ws.getColumn(8).hidden=true;
+  ws.pageSetup.printArea=`A1:F${T}`;
+  return ws;
+}
+async function buildEvalBook(recs, blankCount){
+  await loadXL();
+  const wb=new ExcelJS.Workbook(); wb.creator='콜평가';
+  const g=wb.addWorksheet(GUIDE_SHEET,{views:[{showGridLines:false}]});
+  g.getColumn(1).width=110;
+  ['2~3차월 콜 평가시트 작성 안내','',
+   '1. 평가 시트(노란 칸)에 평가일·지점장·파트너스코드·파트너스명·통화일시·점수·메모를 입력합니다.',
+   '2. 지점장 칸을 누르면 2~3차월 지점장 목록이 나옵니다(다운로드한 날 기준). 사번·센터·입사일은 자동으로 채워지고, 차월은 평가일 기준으로 계산됩니다.',
+   '3. 평가할 사람이 더 많으면 평가 시트 탭을 오른쪽 클릭 → 이동/복사 → 복사본 만들기로 시트를 늘리세요. 한 시트 = 평가 1건입니다.',
+   '4. 다 쓰면 저장하고, 웹 화면 [평가 입력] → [작성한 평가시트 업로드]로 올리면 평가가 그대로 반영됩니다.',
+   '5. 내려받은 기존 평가를 고쳐서 올리면 새로 추가되지 않고 그 평가가 수정됩니다. (숨겨진 H열의 평가ID로 구분)',
+   '6. 지점장이 비어 있는 시트는 건너뜁니다. 배점·항목 칸은 고치지 마세요.',
+   '', `※ 지점장 명단 기준일: ${today()} — 명단에 없는 지점장은 업로드되지 않습니다.`]
+   .forEach((t,i)=>{ const c=g.getCell(`A${i+1}`); c.value=t; sty(c,{size:i?10.5:15,bold:!i,color:i?'FF1F2433':XC.navy,border:false}); g.getRow(i+1).height=i?22:28; });
+  const used=new Set([GUIDE_SHEET, LIST_SHEET]);
+  recs.forEach(r=>addEvalSheet(wb, safeSheetName(`${r.mgr||'평가'}_${(r.edate||'').slice(5)}`, used), r, MGRS.length));
+  for(let k=1;k<=blankCount;k++) addEvalSheet(wb, safeSheetName(`평가${k}`, used), null, MGRS.length);
+  const ls=wb.addWorksheet(LIST_SHEET);
+  ls.columns=[{header:'사번',width:14},{header:'이름',width:12},{header:'센터',width:12},{header:'입사일',width:12},{header:'차월(입사일 없을 때)',width:10},{header:'',width:3},{header:`평가대상 (${today()} 기준 2~3차월)`,width:16}];
+  ls.getRow(1).eachCell(c=>{ if(c.value) sty(c,{bold:true,color:XC.white,fill:XC.navy,h:'center'}); });
+  const ms=[...MGRS].sort((a,b)=>(a.center||'').localeCompare(b.center||'')||a.name.localeCompare(b.name));
+  ms.forEach(m=>{ const row=ls.addRow([m.empno,m.name,m.center,xlDate(m.hire),m.month]); row.getCell(1).numFmt='@'; row.getCell(4).numFmt='yyyy-mm-dd'; });
+  ms.filter(m=>{ const n=mgrMonth(m, today()); return n===null||n===2||n===3; })
+    .sort((a,b)=>(mgrMonth(a)??9)-(mgrMonth(b)??9)||a.name.localeCompare(b.name))
+    .forEach((m,i)=>{ ls.getCell(i+2,7).value=m.name; });
+  wb.views=[{activeTab:1}];
+  return wb;
+}
+async function downloadEvalBook(recs, blankCount, fname){
+  const wb=await buildEvalBook(recs, blankCount);
+  download(new Blob([await wb.xlsx.writeBuffer()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), fname);
+  toast('엑셀 파일을 내려받았습니다');
+}
+$('btnBlank').onclick=()=>{
+  const m=modal(`<h3>빈 평가시트 다운로드</h3>
+    <label>평가 시트 수 (한 시트 = 평가 1건)</label><input type="number" id="blankN" value="5" min="1" max="50">
+    <div class="hint" style="margin-top:8px">엑셀에서 시트를 복사해 더 늘릴 수도 있어요. 빈 시트는 업로드할 때 자동으로 건너뜁니다.</div>
+    <div class="mfoot"><button class="btn ghost" id="bnC">취소</button><button class="btn" id="bnO">다운로드</button></div>`);
+  $('bnC').onclick=closeModal;
+  $('bnO').onclick=()=>{ const n=Math.min(50,Math.max(1,parseInt($('blankN').value)||1)); closeModal(); run(()=>downloadEvalBook([], n, `콜평가_빈평가시트_${today()}.xlsx`)); };
 };
 
-/* ================= 인쇄 ================= */
-function doPrint(html){
-  const pa=document.getElementById('printArea'); pa.innerHTML=html;
-  setTimeout(()=>{ window.print(); }, 50);
+/* ---- 업로드: 평가시트 → 평가 ---- */
+function cv(c){
+  let v=c.value;
+  if(v && typeof v==='object' && !(v instanceof Date)){
+    if('result' in v) v=v.result;
+    else if(v.richText) v=v.richText.map(t=>t.text).join('');
+    else if('text' in v) v=v.text;
+    else v='';   // 계산 결과 없는 수식, 오류 값 등
+  }
+  if(v && typeof v==='object' && !(v instanceof Date)) v='';
+  return v??'';
 }
-window.addEventListener('afterprint', ()=>{ document.getElementById('printArea').innerHTML=''; });
+function dtStr(d, withTime){
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}` + (withTime?` ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`:'');
+}
+function txt(v){
+  if(v instanceof Date) return dtStr(v, v.getUTCHours()||v.getUTCMinutes());
+  return String(v??'').trim();
+}
+function callTxt(v){
+  if(v instanceof Date) return dtStr(v, true);
+  if(typeof v==='number' && v>20000) return dtStr(new Date(Math.round((v-25569)*864e5)), true);
+  return String(v??'').trim().replace('T',' ');
+}
+const LABELS=['평가일','지점장','지점장사번','센터','차월','입사일','파트너스코드','파트너스명','통화일시'];
+function monthNorm(v){ const t=String(v??'').trim(); if(/^2/.test(t)) return '2차월'; if(/^3/.test(t)) return '3차월'; return ''; }
+async function parseEvalFile(file){
+  await loadXL();
+  const wb=new ExcelJS.Workbook();
+  await wb.xlsx.load(await file.arrayBuffer());
+  const out=[];
+  wb.worksheets.forEach(ws=>{
+    if([GUIDE_SHEET,LIST_SHEET].includes(ws.name)) return;
+    let h=0;
+    for(let r=1;r<=30 && !h;r++) if(txt(cv(ws.getCell(r,1)))==='구분' && txt(cv(ws.getCell(r,4)))==='배점') h=r;
+    if(!h){ out.push({sheet:ws.name, status:'skip', msg:'평가표 양식이 아닌 시트'}); return; }
+    const info={};
+    for(let r=1;r<h;r++) for(let c=1;c<=7;c++){
+      const t=txt(cv(ws.getCell(r,c))).replace(/\s+/g,'');
+      if(LABELS.includes(t) && !(t in info)) info[t]=cv(ws.getCell(r,c+1));
+    }
+    const s=[], m=[]; let err='';
+    ITEMS.forEach((it,i)=>{
+      const R=h+1+i, p=num(cv(ws.getCell(R,4)));
+      if(p!==it.p && !err) err=`${i+1}번 항목 배점이 현재 평가표와 다릅니다 (예전 양식인지 확인)`;
+      let v=cv(ws.getCell(R,5)); v=(v===''||v===null)?null:Number(String(v).trim());
+      if(v!==null && (isNaN(v)||v<0||v>it.p) && !err) err=`${i+1}번 점수는 0~${it.p}점입니다`;
+      s.push(v===null||isNaN(v)?null:v); m.push(txt(cv(ws.getCell(R,6))));
+    });
+    const id=txt(cv(ws.getCell('H2')));
+    const nm=normName(txt(info['지점장'])), emp=txt(info['지점장사번']);
+    const ptnCode=txt(info['파트너스코드']), ptn=txt(info['파트너스명']);
+    if(!nm && !emp && s.every(v=>v===null)){ out.push({sheet:ws.name, status:'skip', msg:'빈 시트'}); return; }
+    const old = id ? DATA.find(x=>x.id===id) : null;
+    let mg=null;
+    if(!err){
+      if(emp){ mg=MGRS.find(x=>x.empno===emp); if(mg && nm && normName(mg.name)!==nm){ err='지점장 이름과 사번이 명단과 다릅니다'; mg=null; } }
+      if(!mg && !err){ const c=MGRS.filter(x=>normName(x.name)===nm); if(c.length===1) mg=c[0]; else if(c.length>1) err='동명이인이 있어요 — 지점장사번을 확인하세요'; }
+      if(!mg && !err && old && (emp===old.mgrEmp || nm===normName(old.mgr))) mg={empno:old.mgrEmp, name:old.mgr, center:old.center};
+      if(!mg && !err) err=`지점장 명단에 없는 지점장입니다 (${txt(info['지점장'])||emp})`;
+    }
+    const edate = normDate(info['평가일']) || (old?old.edate:today());
+    let month='';
+    const real = mg && MGRS.find(x=>x.empno===mg.empno);
+    if(real){
+      const n=mgrMonth(real, edate);
+      if(n===null) month=monthNorm(info['차월']);
+      else if(n===2||n===3) month=`${n}차월`;
+      else if(!err) err=`평가일(${edate}) 기준 ${monthLabel(n)}이라 평가 대상(2~3차월)이 아닙니다`;
+    } else month = old?.month || monthNorm(info['차월']);
+    if(!err && !month) err='차월을 알 수 없습니다 — 지점장 명단에 입사일을 넣어 주세요';
+    const rec={ id: old?old.id:'', edate, center: mg?.center||txt(info['센터']), month,
+      mgrEmp: mg?.empno||emp, mgr: mg?.name||txt(info['지점장']), ptnCode, ptn, calldt: callTxt(info['통화일시']), s, m };
+    rec.total=totalOf(rec);
+    out.push({sheet:ws.name, rec, status: err?'err':(old?'upd':'new'), msg: err || (old?'기존 평가 수정':(id?'신규 (원래 평가는 삭제됨)':'신규 등록'))});
+  });
+  return out;
+}
+$('btnUpEval').onclick=()=>{ $('fileEval').value=''; $('fileEval').click(); };
+$('fileEval').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  if(!/\.xlsx$/i.test(f.name)){ toast('.xlsx 파일만 올릴 수 있어요 (엑셀에서 다른 이름으로 저장 → Excel 통합 문서)'); return; }
+  run(async()=>{
+    const items=await parseEvalFile(f);
+    const ok=items.filter(x=>x.status==='new'||x.status==='upd');
+    const tag={new:'<span class="tag tok">신규</span>',upd:'<span class="tag t2">수정</span>',err:'<span class="tag terr">오류</span>',skip:'<span class="tag tskip">건너뜀</span>'};
+    modal(`<h3>평가시트 업로드 확인 — ${esc(f.name)}</h3>
+      <div class="hint" style="margin-bottom:8px">반영 ${ok.length}건 · 오류 ${items.filter(x=>x.status==='err').length}건 · 건너뜀 ${items.filter(x=>x.status==='skip').length}건. 오류가 있는 시트는 반영되지 않습니다.</div>
+      <div class="scroll"><table class="list"><thead><tr><th>시트</th><th>상태</th><th>평가일</th><th>지점장</th><th>차월</th><th>파트너스</th><th>합계</th><th>내용</th></tr></thead><tbody>
+      ${items.map(x=>`<tr><td>${esc(x.sheet)}</td><td class="num">${tag[x.status]}</td><td class="num">${esc(x.rec?.edate||'')}</td><td>${esc(x.rec?.mgr||'')} <span class="hint">${esc(x.rec?.mgrEmp||'')}</span></td>
+        <td class="num">${esc(x.rec?.month||'')}</td><td>${esc([x.rec?.ptnCode,x.rec?.ptn].filter(Boolean).join(' '))}</td><td class="num">${x.rec?.total??''}</td><td>${esc(x.msg)}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="mfoot"><button class="btn ghost" id="upC">취소</button><button class="btn" id="upO" ${ok.length?'':'disabled'}>${ok.length}건 반영</button></div>`, true);
+    $('upC').onclick=closeModal;
+    $('upO').onclick=()=>run(async()=>{
+      const res=await api('saveMany',{recs:ok.map(x=>x.rec)});
+      let good=0; const bad=[];
+      res.forEach((r,i)=>{ if(r.ok){ mergeRec(r.rec); good++; } else bad.push(`${ok[i].sheet}: ${r.error}`); });
+      closeModal(); refreshAll();
+      if(bad.length) alert(`${good}건 반영, ${bad.length}건 실패\n\n`+bad.join('\n')); else toast(`${good}건 반영했습니다`);
+    });
+  });
+};
 
-document.getElementById('f-max').textContent = `/ ${MAXP} (가점 ${ITEMS[N-1].p}점 포함)`;
-fillForm(null);
-load();
+/* ---- 명단 관리 (최고관리자) ---- */
+function renderAdmin(){
+  $('mgrCount').textContent=`${MGRS.length}명`; $('admCount').textContent=`${ADMINS.length}명`;
+  $('mgrToday').textContent=`(${today()} 기준)`;
+  const ms=[...MGRS].sort((a,b)=>(mgrMonth(a)??99)-(mgrMonth(b)??99)||(a.center||'').localeCompare(b.center||'')||a.name.localeCompare(b.name));
+  $('mgrBody').innerHTML = ms.length ? ms.map(m=>{ const n=mgrMonth(m, today());
+    const tag = n===2?'t2':n===3?'t3':'tskip';
+    return `<tr><td class="num">${esc(m.center)}</td><td><b>${esc(m.name)}</b></td><td class="num">${esc(m.empno)}</td>
+    <td class="num">${m.hire?esc(m.hire):'<span class="hint">미등록</span>'}</td>
+    <td class="num"><span class="tag ${tag}">${monthLabel(n)}</span>${m.hire?'':' <span class="hint">(수동)</span>'}</td><td>${esc(m.note)}</td>
+    <td class="num" style="white-space:nowrap"><button class="btn sm ghost" data-medit="${esc(m.empno)}">수정</button> <button class="btn sm warn" data-mdel="${esc(m.empno)}">삭제</button></td></tr>`; }).join('')
+    : '<tr><td colspan="7" class="empty">지점장 명단이 없습니다. [＋ 지점장 추가] 또는 엑셀로 올려 주세요.</td></tr>';
+  $('admBody').innerHTML = ADMINS.map(a=>`<tr><td><b>${esc(a.name)}</b></td><td class="num">${esc(a.empno)}</td><td class="num">${esc(a.center)}</td>
+    <td class="num">${a.role==='최고관리자'?'<span class="tag t3">최고관리자</span>':'관리자'}</td>
+    <td class="num">${a.pwStatus==='초기'?'<span class="tag terr">초기(aa1234)</span>':'<span class="tag tok">변경됨</span>'}</td>
+    <td class="num hint">${esc(a.updated)}</td>
+    <td class="num" style="white-space:nowrap"><button class="btn sm ghost" data-aedit="${esc(a.empno)}">수정</button>
+      <button class="btn sm warn" data-reset="${esc(a.empno)}" data-name="${esc(a.name)}">비번 초기화</button>
+      ${a.role==='최고관리자'?'':`<button class="btn sm warn" data-adel="${esc(a.empno)}" data-name="${esc(a.name)}">삭제</button>`}</td></tr>`).join('');
+}
+$('admBody').addEventListener('click', e=>{
+  const ed=e.target.closest('[data-aedit]'); if(ed){ openAdminForm(ADMINS.find(a=>a.empno===ed.dataset.aedit)); return; }
+  const dl=e.target.closest('[data-adel]');
+  if(dl){ if(!confirm(`${dl.dataset.name}님을 관리자 명단에서 삭제할까요? 바로 로그인이 막힙니다.`)) return;
+    run(async()=>{ ADMINS=await api('deleteAdmin',{empno:dl.dataset.adel}); renderAdmin(); toast('삭제했습니다'); }); return; }
+  const b=e.target.closest('[data-reset]'); if(!b) return;
+  if(!confirm(`${b.dataset.name}님의 비밀번호를 aa1234로 초기화할까요?`)) return;
+  run(async()=>{ await api('resetPw',{empno:b.dataset.reset}); const a=ADMINS.find(x=>x.empno===b.dataset.reset); if(a){a.pwStatus='초기'; a.updated=today();}
+    if(b.dataset.reset===ME.empno){ ME.initPw=true; $('pwBanner').hidden=false; } renderAdmin(); toast(`${b.dataset.name}님 비밀번호를 aa1234로 초기화했습니다`); });
+});
+$('mgrBody').addEventListener('click', e=>{
+  const ed=e.target.closest('[data-medit]'); if(ed){ openMgrForm(MGRS.find(m=>m.empno===ed.dataset.medit)); return; }
+  const dl=e.target.closest('[data-mdel]'); if(!dl) return;
+  const m=MGRS.find(x=>x.empno===dl.dataset.mdel);
+  if(!confirm(`${m?.name||''} 지점장을 명단에서 삭제할까요? 이미 입력된 평가는 그대로 남습니다.`)) return;
+  run(async()=>{ MGRS=await api('deleteManager',{empno:dl.dataset.mdel}); renderAdmin(); mgrOptions($('f-mgr').value); toast('삭제했습니다'); });
+});
+const sel = (id, opts, v) => `<select id="${id}" style="width:100%">${opts.map(o=>`<option value="${esc(o[0])}"${o[0]===(v||'')?' selected':''}>${esc(o[1])}</option>`).join('')}</select>`;
+function openMgrForm(m){
+  modal(`<h3>${m?'지점장 수정':'지점장 추가'}</h3>
+    <label>센터</label>${sel('mf-center',[['','선택'],...CENTERS.map(c=>[c,c])],m?.center)}
+    <label>이름 *</label><input id="mf-name" value="${esc(m?.name||'')}">
+    <label>사번 *</label><input id="mf-emp" value="${esc(m?.empno||'')}">
+    <label>입사일 *</label><input id="mf-hire" type="date" value="${esc(m?.hire||'')}">
+    <div class="hint" id="mf-calc" style="margin-top:4px"></div>
+    <label>차월 (입사일을 모를 때만)</label>${sel('mf-month',[['','—'],['2차월','2차월'],['3차월','3차월']],m?.month)}
+    <label>비고</label><input id="mf-note" value="${esc(m?.note||'')}">
+    <div class="lmsg" id="mf-msg"></div>
+    <div class="mfoot"><button class="btn ghost" id="mfC">취소</button>${m?'':'<button class="btn ghost" id="mfMore">저장 후 계속 추가</button>'}<button class="btn" id="mfO">저장</button></div>`);
+  $('mf-name').focus();
+  const calc=()=>{ const h=$('mf-hire').value; $('mf-calc').textContent = h ? `오늘(${today()}) 기준 ${monthLabel(monthNum(h, today()))}` : '입사일을 넣으면 차월이 매달 자동으로 바뀝니다.'; };
+  $('mf-hire').addEventListener('input', calc); calc();
+  $('mfC').onclick=closeModal;
+  const save=async again=>{
+    const row={hire:$('mf-hire').value, month:$('mf-month').value, center:$('mf-center').value, name:$('mf-name').value.trim(), empno:$('mf-emp').value.trim(), note:$('mf-note').value.trim()};
+    if(!row.name||!row.empno){ $('mf-msg').textContent='이름과 사번을 입력하세요.'; return; }
+    if(!row.hire && !row.month){ $('mf-msg').textContent='입사일을 넣어 주세요. (모르면 차월이라도 골라 주세요)'; return; }
+    busy(true);
+    try{ MGRS=await api('saveManager',{row, orig:m?.empno||''}); renderAdmin(); mgrOptions($('f-mgr').value);
+      toast(`${row.name} 지점장을 ${m?'수정':'추가'}했습니다`);
+      if(again){ openMgrForm(null); $('mf-center').value=row.center; } else closeModal(); }
+    catch(e){ $('mf-msg').textContent=e.message; }
+    finally{ busy(false); }
+  };
+  $('mfO').onclick=()=>save(false); if(!m) $('mfMore').onclick=()=>save(true);
+}
+function openAdminForm(a){
+  modal(`<h3>${a?'관리자 수정':'관리자 추가'}</h3>
+    <label>이름 *</label><input id="af-name" value="${esc(a?.name||'')}">
+    <label>사번 *</label><input id="af-emp" value="${esc(a?.empno||'')}" ${a?.role==='최고관리자'?'readonly':''}>
+    <label>센터</label>${sel('af-center',[['','선택 안 함'],...CENTERS.map(c=>[c,c])],a?.center)}
+    <div class="hint" style="margin-top:8px">${a?'비밀번호는 바뀌지 않습니다.':'처음 비밀번호는 aa1234 입니다.'}</div>
+    <div class="lmsg" id="af-msg"></div>
+    <div class="mfoot"><button class="btn ghost" id="afC">취소</button>${a?'':'<button class="btn ghost" id="afMore">저장 후 계속 추가</button>'}<button class="btn" id="afO">저장</button></div>`);
+  $('af-name').focus();
+  $('afC').onclick=closeModal;
+  const save=async again=>{
+    const row={name:$('af-name').value.trim(), empno:$('af-emp').value.trim(), center:$('af-center').value};
+    if(!row.name||!row.empno){ $('af-msg').textContent='이름과 사번을 입력하세요.'; return; }
+    busy(true);
+    try{ ADMINS=await api('saveAdmin',{row, orig:a?.empno||''}); renderAdmin();
+      if(a && a.empno===ME.empno){ ME.name=row.name; $('whoami').innerHTML=`<b>${esc(ME.name)}</b> (${esc(ME.role)})`; }
+      toast(`${row.name}님을 ${a?'수정':'추가'}했습니다`); if(again) openAdminForm(null); else closeModal(); }
+    catch(e){ $('af-msg').textContent=e.message; }
+    finally{ busy(false); }
+  };
+  $('afO').onclick=()=>save(false); if(!a) $('afMore').onclick=()=>save(true);
+}
+$('btnMgrAdd').onclick=()=>openMgrForm(null);
+$('btnAdmAdd').onclick=()=>openAdminForm(null);
+const LIST_COLS={
+  empno:['사번','사원번호','코드','위촉코드','지점장코드','지점장사번','관리자사번','평가자사번'],
+  name:['이름','성명','지점장','지점장명','관리자','관리자명','평가자','평가자명'],
+  center:['센터','소속','소속센터','센터명'], hire:['입사일','입사일자','입사년월일','위촉일','위촉일자'],
+  month:['차월','차월(수동)','차월(입사일없을때)'], note:['비고','메모']
+};
+async function parseListFile(file){
+  await loadXL();
+  const wb=new ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer());
+  const ws=wb.worksheets.find(w=>w.state!=='hidden') || wb.worksheets[0];
+  let hr=0, map={};
+  for(let r=1;r<=10 && !hr;r++){
+    const m={};
+    for(let c=1;c<=Math.min(40,ws.columnCount||40);c++){
+      const t=txt(cv(ws.getCell(r,c))).replace(/\s+/g,'');
+      for(const k in LIST_COLS) if(!(k in m) && LIST_COLS[k].includes(t)) m[k]=c;
+    }
+    if(m.empno && m.name){ hr=r; map=m; }
+  }
+  if(!hr) throw new Error('첫 줄 제목에서 "사번"과 "이름" 열을 찾지 못했습니다.');
+  const rows=[];
+  for(let r=hr+1;r<=ws.rowCount;r++){
+    const g=k=> map[k] ? txt(cv(ws.getCell(r,map[k]))) : '';
+    const row={empno:g('empno'), name:g('name'), center:g('center'), month:map.month?monthNorm(g('month')):'', note:g('note'),
+      hire: map.hire ? normDate(cv(ws.getCell(r,map.hire))) : ''};
+    if(map.hire && txt(cv(ws.getCell(r,map.hire))) && !row.hire) throw new Error(`${r}번째 줄: 입사일 형식을 알 수 없습니다 (예: 2026-09-15)`);
+    if(!row.empno && !row.name) continue;
+    if(!row.empno || !row.name) throw new Error(`${r}번째 줄: 사번과 이름이 모두 있어야 합니다.`);
+    rows.push(row);
+  }
+  const dup=rows.map(r=>r.empno).filter((e,i,a)=>a.indexOf(e)!==i);
+  if(dup.length) throw new Error('사번이 중복됩니다: '+[...new Set(dup)].join(', '));
+  return rows;
+}
+async function downloadList(kind){
+  await loadXL();
+  const wb=new ExcelJS.Workbook(), ws=wb.addWorksheet(kind==='mgr'?'지점장명단':'관리자명단');
+  const cols = kind==='mgr' ? [['사번',14],['이름',12],['센터',12],['입사일',12],['차월(입사일 없을 때)',12],['비고',24]] : [['사번',14],['이름',12],['센터',12]];
+  ws.columns=cols.map(([h,w])=>({header:h,width:w}));
+  ws.getRow(1).eachCell(c=>sty(c,{bold:true,color:XC.white,fill:XC.navy,h:'center'}));
+  const data = kind==='mgr' ? [...MGRS].sort((a,b)=>(a.center||'').localeCompare(b.center||'')).map(m=>[m.empno,m.name,m.center,m.hire,m.month,m.note])
+                            : ADMINS.map(a=>[a.empno,a.name,a.center]);
+  data.forEach(d=>{ const row=ws.addRow(d); row.getCell(1).numFmt='@'; if(kind==='mgr') row.getCell(4).numFmt='@'; });
+  ws.getColumn(1).numFmt='@';
+  download(new Blob([await wb.xlsx.writeBuffer()]), `${kind==='mgr'?'지점장명단':'관리자명단'}_${today()}.xlsx`);
+}
+$('btnMgrDown').onclick=()=>run(()=>downloadList('mgr'));
+$('btnAdmDown').onclick=()=>run(()=>downloadList('adm'));
+$('btnMgrUp').onclick=()=>{ $('fileMgr').value=''; $('fileMgr').click(); };
+$('btnAdmUp').onclick=()=>{ $('fileAdm').value=''; $('fileAdm').click(); };
+$('fileMgr').onchange=e=>{ const f=e.target.files[0]; if(!f) return;
+  run(async()=>{
+    const rows=await parseListFile(f);
+    const noCenter=rows.filter(r=>!r.center).length, noHire=rows.filter(r=>!r.hire).length;
+    if(!confirm(`지점장 명단을 ${rows.length}명으로 교체합니다.${noCenter?`\n(센터가 비어 있는 사람 ${noCenter}명)`:''}${noHire?`\n(입사일이 비어 있는 사람 ${noHire}명 — 차월 자동 계산 안 됨)`:''}\n기존 평가는 그대로 남습니다. 진행할까요?`)) return;
+    const d=await api('uploadManagers',{rows}); MGRS=d.managers; renderAdmin(); mgrOptions($('f-mgr').value); toast(`지점장 ${d.count}명을 등록했습니다`);
+  });
+};
+$('fileAdm').onchange=e=>{ const f=e.target.files[0]; if(!f) return;
+  run(async()=>{
+    const rows=await parseListFile(f);
+    const cur=new Set(ADMINS.map(a=>a.empno)), nw=new Set(rows.map(r=>r.empno));
+    const add=rows.filter(r=>!cur.has(r.empno)).length;
+    const del=ADMINS.filter(a=>!nw.has(a.empno) && a.role!=='최고관리자');
+    if(!confirm(`관리자 명단을 ${rows.length}명으로 교체합니다.\n· 새로 추가 ${add}명 (비밀번호 aa1234)\n· 명단에서 빠짐 ${del.length}명${del.length?` (${del.map(a=>a.name).join(', ')}) → 로그인 불가`:''}\n· 최고관리자는 항상 유지됩니다.\n진행할까요?`)) return;
+    const d=await api('uploadAdmins',{rows}); ADMINS=d.admins; renderAdmin(); toast(`관리자 ${d.count}명 (신규 ${d.added}, 삭제 ${d.removed})`);
+  });
+};
+
+/* ================= 시작 ================= */
+$('f-max').textContent = `/ ${MAXP} (가점 ${ITEMS[N-1].p}점 포함)`;
+(async()=>{
+  try{ SESSION=JSON.parse(localStorage.getItem(SKEY)||'null'); }catch(e){ SESSION=null; }
+  if(!SESSION?.token){ logoutLocal(''); $('lg-name').focus(); return; }
+  busy(true);
+  try{ await boot(); } catch(e){ logoutLocal(e.message==='로그인이 필요합니다'?'로그인이 만료됐습니다. 다시 로그인하세요.':e.message); }
+  finally{ busy(false); }
+})();
 </script>
 </body>
 </html>
