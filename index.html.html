@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2~3차월 콜 평가</title>
+<script>
+  /* ▼ Apps Script 웹 앱 URL(…/exec)을 넣으세요. 비워두면 이 브라우저에만 저장되는 '데모 모드'로 동작합니다. */
+  const API_URL = '';
+</script>
+<style>
+  :root{
+    --navy:#1E2761; --navy2:#2E3A80; --light:#E8EFFA; --pale:#F4F6FA; --yel:#FFFBD6; --line:#C9D0DE;
+    --text:#1F2433; --muted:#5A5F6B; --red:#C00000; --green:#E2EFDA; --peach:#FBE5D6; --bg:#EEF1F7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo",system-ui,sans-serif;color:var(--text);background:var(--bg);font-size:14px}
+  button{font-family:inherit;cursor:pointer}
+  header{background:var(--navy);color:#fff;padding:0 20px;display:flex;align-items:center;gap:24px;position:sticky;top:0;z-index:10}
+  header h1{font-size:17px;margin:0;padding:14px 0;white-space:nowrap}
+  nav{display:flex;gap:2px;flex-wrap:wrap}
+  nav button{background:none;border:0;color:#C8CFEA;padding:16px 14px;font-size:14px;border-bottom:3px solid transparent}
+  nav button.on{color:#fff;border-bottom-color:#FFD34D;font-weight:700}
+  .mode{margin-left:auto;font-size:12px;color:#C8CFEA;white-space:nowrap}
+  .mode b{color:#FFD34D}
+  main{max-width:1280px;margin:0 auto;padding:20px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:16px}
+  .card h2{font-size:15px;margin:0 0 12px;color:var(--navy)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:700}
+  input,select,textarea{font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:5px;padding:7px 9px;background:#fff;color:var(--text)}
+  input:focus,select:focus,textarea:focus{outline:2px solid #8EA2E8;border-color:#8EA2E8}
+  .btn{border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:5px;padding:8px 16px;font-size:14px;font-weight:700}
+  .btn.ghost{background:#fff;color:var(--navy)}
+  .btn.warn{background:#fff;color:var(--red);border-color:var(--red)}
+  .btn.sm{padding:4px 10px;font-size:12px}
+  .btn:disabled{opacity:.5;cursor:default}
+  .hint{font-size:12px;color:var(--muted)}
+  /* 입력 표 */
+  table{border-collapse:collapse;width:100%}
+  th,td{border:1px solid var(--line);padding:6px 8px;vertical-align:middle}
+  th{background:var(--navy);color:#fff;font-size:13px;font-weight:700}
+  td.cat{background:var(--light);color:var(--navy);font-weight:700;text-align:center;font-size:13px;width:130px}
+  td.cat.bonus{background:var(--green)}
+  td.item{font-size:13px;font-weight:700;color:var(--navy);line-height:1.45}
+  td.item small{display:block;font-weight:400;color:var(--muted);margin-top:3px}
+  td.pts{text-align:center;font-weight:700;width:46px}
+  td.sc{width:190px;background:var(--yel)}
+  .chips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:12px;padding:2px 9px;font-size:12px}
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  td.sc input{width:70px;text-align:center;font-weight:700;font-size:15px}
+  td.memo textarea{width:100%;min-height:52px;resize:vertical;font-size:13px}
+  .totalbar{position:sticky;bottom:0;background:var(--navy);color:#fff;border-radius:8px;padding:12px 18px;display:flex;align-items:center;gap:18px;margin-top:12px;flex-wrap:wrap}
+  .totalbar .big{font-size:24px;font-weight:800;color:#FFE699}
+  .totalbar .sp{flex:1}
+  /* 목록 */
+  .list td{font-size:13px}
+  .list tr:hover td{background:#F7F9FD}
+  .num{text-align:center}
+  .tag{display:inline-block;border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700}
+  .t2{background:#DDEBFF;color:#1F4E9E}.t3{background:#FFE9D6;color:#A04A00}
+  .g-hi{color:#B8860B;font-weight:800}.g-lo{color:var(--red);font-weight:800}
+  /* 통계 */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+  .stat .k{font-size:12px;color:var(--muted);font-weight:700}
+  .stat .v{font-size:26px;font-weight:800;color:var(--navy);margin-top:4px}
+  .stat .s{font-size:12px;color:var(--muted);margin-top:2px}
+  .matrix{overflow:auto;max-width:100%}
+  .matrix table{width:auto;min-width:100%}
+  .matrix th,.matrix td{font-size:12px;white-space:nowrap}
+  .matrix td.cat{width:auto;white-space:normal;min-width:110px}
+  .matrix td.item{white-space:normal;min-width:170px;font-size:12px}
+  .matrix .ph{background:var(--pale);color:var(--navy);font-weight:700;text-align:center}
+  .matrix .avg{background:var(--light);text-align:center;font-weight:700;color:var(--navy)}
+  .matrix .v{background:#FFFDE8;text-align:center;font-weight:700}
+  .matrix tr.tot td{background:var(--navy);color:#fff;font-weight:800;text-align:center}
+  .matrix tr.tot td.hi{color:#FFE699}.matrix tr.tot td.lo{color:#FF9C9C}
+  /* 리포트 */
+  .report{background:#fff;padding:22px 26px;max-width:960px;margin:0 auto 16px;border:1px solid var(--line)}
+  .report h3{font-size:20px;color:var(--navy);margin:0 0 10px}
+  .report .info th{background:var(--pale);color:var(--navy);font-size:12px}
+  .report .info td{text-align:center;font-weight:700;font-size:13px}
+  .report .ev{table-layout:fixed}
+  .report .ev td{font-size:12px;word-break:keep-all;overflow-wrap:anywhere}
+  .report .ev td.cat{width:auto}
+  .report .ev td.item{font-size:12px}
+  .report .ev td.crit{color:var(--muted);font-size:11.5px;width:170px}
+  .report .ev td.score{background:var(--yel);text-align:center;font-weight:800;color:var(--red);font-size:15px;width:52px}
+  .report .ev td.avg{background:var(--pale);text-align:center;color:var(--muted);width:52px}
+  .report .ev td.memo{font-size:12px;width:230px;white-space:pre-wrap}
+  .report .ev tr.tot td{background:var(--navy);color:#fff;font-weight:800;text-align:center;font-size:14px}
+  .report .ev tr.tot td.score{background:var(--navy);color:#FFE699;font-size:17px}
+  .report .foot{font-size:11px;color:var(--muted);margin-top:8px}
+  .empty{color:var(--muted);text-align:center;padding:40px}
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 18px;border-radius:6px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:99}
+  .toast.on{opacity:.95}
+  .loading{position:fixed;inset:0;background:rgba(255,255,255,.6);display:none;align-items:center;justify-content:center;z-index:98;font-weight:700;color:var(--navy)}
+  .loading.on{display:flex}
+  #printArea{display:none}
+  @page{size:A4 portrait;margin:10mm}
+  @page wide{size:A4 landscape;margin:8mm}
+  @media print{
+    body{background:#fff}
+    header,main,.toast,.loading{display:none!important}
+    #printArea{display:block}
+    #printArea .report{border:0;padding:0;max-width:none;margin:0;break-after:page}
+    #printArea .report .ev td,#printArea .report .info td,#printArea .report .info th{padding:4px 5px}
+    #printArea .report .ev td{font-size:10.5px}
+    #printArea .report .ev td.crit,#printArea .report .ev td.memo{font-size:10px}
+    #printArea .report .ev th{font-size:11px;padding:5px}
+    #printArea .report:last-child{break-after:auto}
+    #printArea .wide{page:wide}
+    #printArea .wide .matrix{overflow:visible}
+    #printArea .wide .matrix th,#printArea .wide .matrix td{font-size:9px;padding:3px 4px}
+    #printArea .wide .stats{grid-template-columns:repeat(4,1fr)}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>2~3차월 콜 평가</h1>
+  <nav id="nav">
+    <button data-v="input" class="on">평가 입력</button>
+    <button data-v="list">평가 목록</button>
+    <button data-v="report">개인 리포트</button>
+    <button data-v="result">전체 결과</button>
+  </nav>
+  <div class="mode" id="mode"></div>
+</header>
+
+<main>
+  <!-- ===== 평가 입력 ===== -->
+  <section id="v-input">
+    <div class="card">
+      <h2 id="formTitle">새 평가 입력</h2>
+      <div class="row">
+        <label class="f"><span>센터 <b style="color:var(--red)">*</b></span><select id="f-center"></select></label>
+        <label class="f"><span>차월 <b style="color:var(--red)">*</b></span><select id="f-month"><option value="">선택</option><option>2차월</option><option>3차월</option></select></label>
+        <label class="f"><span>지점장 <b style="color:var(--red)">*</b></span><input id="f-mgr" style="width:110px"></label>
+        <label class="f">파트너스명<input id="f-ptn" style="width:110px"></label>
+        <label class="f">통화일시<input id="f-calldt" type="datetime-local"></label>
+        <label class="f">평가자<input id="f-evr" style="width:100px"></label>
+        <label class="f">평가일<input id="f-edate" type="date"></label>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table style="table-layout:fixed">
+        <colgroup><col style="width:130px"><col><col style="width:52px"><col style="width:180px"><col style="width:32%"></colgroup>
+        <thead><tr><th>구분</th><th>평가 항목 · 판단 기준</th><th>배점</th><th>점수</th><th>평가 메모 (근거가 된 발화)</th></tr></thead>
+        <tbody id="formBody"></tbody>
+      </table>
+    </div>
+    <div class="totalbar">
+      <div>합계 <span class="big" id="f-total">0</span> <span style="opacity:.8" id="f-max"></span></div>
+      <div id="f-filled" class="hint" style="color:#C8CFEA"></div>
+      <div class="sp"></div>
+      <button class="btn ghost" id="btnReset">새로 작성</button>
+      <button class="btn warn" id="btnDelete" style="display:none">삭제</button>
+      <button class="btn" id="btnSave" style="background:#FFD34D;color:#1E2761;border-color:#FFD34D">저장</button>
+    </div>
+  </section>
+
+  <!-- ===== 평가 목록 ===== -->
+  <section id="v-list" hidden>
+    <div class="card">
+      <div class="row">
+        <label class="f">차월<select id="l-month"><option value="">전체</option><option>2차월</option><option>3차월</option></select></label>
+        <label class="f">센터<select id="l-center"></select></label>
+        <label class="f">검색<input id="l-q" placeholder="지점장·파트너스·평가자" style="width:200px"></label>
+        <div style="flex:1"></div>
+        <button class="btn ghost" id="btnCsv">엑셀(CSV) 다운로드</button>
+        <button class="btn" id="btnPrintAll">목록 전체 개인리포트 인쇄</button>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:auto">
+      <table class="list">
+        <thead><tr><th>평가일</th><th>센터</th><th>차월</th><th>지점장</th><th>파트너스명</th><th>통화일시</th><th>평가자</th><th>합계</th><th></th></tr></thead>
+        <tbody id="listBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== 개인 리포트 ===== -->
+  <section id="v-report" hidden>
+    <div class="card">
+      <div class="row">
+        <label class="f">평가 선택<select id="r-sel" style="min-width:340px"></select></label>
+        <div style="flex:1"></div>
+        <button class="btn ghost" id="btnEditFromReport">이 평가 수정</button>
+        <button class="btn" id="btnPrintOne">인쇄 / PDF 저장</button>
+      </div>
+    </div>
+    <div id="reportBox"></div>
+  </section>
+
+  <!-- ===== 전체 결과 ===== -->
+  <section id="v-result" hidden>
+    <div class="card">
+      <div class="row">
+        <label class="f">차월<select id="s-month"><option value="">전체</option><option>2차월</option><option>3차월</option></select></label>
+        <label class="f">센터<select id="s-center"></select></label>
+        <div style="flex:1"></div>
+        <button class="btn" id="btnPrintResult">전체 결과 인쇄 / PDF 저장</button>
+      </div>
+    </div>
+    <div id="resultBox"></div>
+  </section>
+</main>
+
+<div id="printArea"></div>
+<div class="toast" id="toast"></div>
+<div class="loading" id="loading">불러오는 중…</div>
+
+<script>
+/* ================= 평가 항목 정의 (엑셀 평가표와 동일) ================= */
+const CENTERS = ['강남센터','서울센터','경인센터','충청센터','호남센터','부경센터','대경센터'];
+const MONTHS = ['2차월','3차월'];
+const CATS = [
+  {name:'1) 사전준비 및\n최대 수수료(15점)', n:2},
+  {name:'2) 파트너스 탐색\n(10점)', n:1},
+  {name:'3) 보장분석(20점)', n:2},
+  {name:'4) 제안서 설명\n(20점)', n:2},
+  {name:'5) 담보 및 상품의\n장점 설명(어필)\n(10점)', n:2},
+  {name:'6) 반론극복\n(10점)', n:2},
+  {name:'7) 클로징 (10점)', n:2},
+  {name:'8) 사후관리\n(5점)', n:1},
+  {name:'※ 가점 (최대 5점)', n:1, bonus:true},
+];
+const ITEMS = [
+  {t:'사전준비 - 보장분석 동의(5점) / 가계약 생성(5점)', c:'', p:10, ch:[0,5,10]},
+  {t:'파트너스 수수료 관리 - 시책 조건을 모두 챙겼는가(MeAI & 고객등록 & CRM) (모두완료 5점/부분 3점/0점)', c:'', p:5, ch:[0,3,5]},
+  {t:'파트너스가 원하는 것이 무엇인지 탐색 했는가?', c:'파트너스 직업, 보험료 수준, 가입대상, 해지 희망상품, 병력 등', p:10, ch:[0,5,10]},
+  {t:'보장분석을 가입내역 설명 하고 부족한 부분을 눈으로 확인시켜줬는가? (10점 / 구두진행 5점 / 0점)', c:'이미지, 파일등', p:10, ch:[0,5,10]},
+  {t:'파트너스 개별 맞춤 고객(가족)의 나이·건강상태 등 개인 사정을 설명에 반영했는가? (반영 10점 / 미흡 8점 / 0점)', c:'', p:10, ch:[0,8,10]},
+  {t:'제안서 발송', c:'', p:10, ch:[0,10]},
+  {t:'이 담보가 왜 필요한지 이유를 논리적으로 짜임새 있게 설명했는가[비교설명 등] (비교설명 有 10점 / 일반근거 8점 / 0점) * 일반근거 : 보장분석이나 통계에 근거하지 않은 통상적인 내용으로 설명시', c:'뇌경색 진단비 vs 뇌혈관 진단비', p:10, ch:[0,8,10]},
+  {t:'아플 때 실제로 받을 수 있는 금액을 구체적 숫자로 보여줬는가? (有 : 5점 / 無 : 0점)', c:'00수술시 00만원 / 로봇수술시 000만원에 추가로 000만원 지급', p:5, ch:[0,5]},
+  {t:'믿을 만한 실제 경험이나 통계를 근거로 들었는가? (有 : 5점 / 無 : 0점)', c:'제 파트너스 중에 …, 제 지인중에 암치료… 등 / 최근 발표된 기대수명이~.. 등등', p:5, ch:[0,5]},
+  {t:'보험료가 부담된다고 하면 나눠서 가입하는 등 대안을 먼저 제시했는가? (상황이 없는 경우 5점)', c:'"전체 부담스러우면 암 먼저 할까요?"', p:5, ch:[0,5]},
+  {t:'파트너스의 반론 또는 질문에 적절한 대응을 했는가? (상황이 없는 경우 5점)', c:'"실손 있으니 괜찮아요" 같은 반론에, 구체적 근거로 다시 설명했는가.', p:5, ch:[0,5]},
+  {t:'지급 가능한 수수료(사전) 안내 (有 : 5점 / 無 : 0점)', c:'제안서 제시시 수령가능한 수수료 안내', p:5, ch:[0,5]},
+  {t:'최소유지기간 안내 (有 : 5점 / 無 : 0점)', c:'25개월이상 유지 하셔야해요~', p:5, ch:[0,5]},
+  {t:'이번 건으로 끝내지 않고, 다음 접촉이나 추가 제안으로 이어갔는가? (有 : 5점 / 無 : 0점)', c:'"다음엔 배우자분 것도 봐드릴게요" / "이번 건 외에 다음달에 더 하실게 있나요?" / "다음달엔 화재보험도 해볼까요?" 등', p:5, ch:[0,5]},
+  {t:'업셀링시도, 다방면으로 매출유도, 본인외 타인대상 영업지원 자료/화법제공 등 (가점 범위 : 2~최대 5점)', c:'이렇게 하시면 최소한 병원비 따로 준비 하실필요 없지만 혹시 간병인 등 사용을 할 경우~ 추가로 필요한 비용까지 감안하면 000 000 담보 추가 하시면 ~ 등', p:5, ch:[0,2,3,4,5]},
+];
+const SHORT = ['사전준비','수수료 관리','파트너스 탐색','보장분석 시각화','개인사정 반영','제안서 발송','제안서 논리','금액 구체화','경험·통계 근거','대안 제시','반론 대응','수수료 안내','최소유지기간','사후관리','가점'];
+const N = ITEMS.length;
+const MAXP = ITEMS.reduce((a,it)=>a+it.p,0);
+const catOf = (()=>{ const a=[]; CATS.forEach((c,ci)=>{for(let k=0;k<c.n;k++)a.push(ci)}); return a; })();
+
+/* ================= 데이터 계층 (Apps Script 또는 데모 저장) ================= */
+const DEMO = !API_URL;
+const LS_KEY = 'callEval.v2';
+let DATA = [];
+let accessKey = localStorage.getItem('callEval.key') || '';
+
+async function api(action, payload={}){
+  if (DEMO){
+    let arr = []; try{ arr = JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch(e){}
+    if (action==='list') return arr;
+    if (action==='save'){
+      const rec = {...payload.rec};
+      const now = stamp(new Date());
+      if (!rec.id){ rec.id='E'+Date.now(); rec.created=now; }
+      rec.updated = now;
+      const i = arr.findIndex(r=>r.id===rec.id);
+      if (i>=0){ rec.created = arr[i].created; arr[i]=rec; } else arr.push(rec);
+      localStorage.setItem(LS_KEY, JSON.stringify(arr)); return rec;
+    }
+    if (action==='delete'){ arr = arr.filter(r=>r.id!==payload.id); localStorage.setItem(LS_KEY, JSON.stringify(arr)); return true; }
+  }
+  const body = JSON.stringify({action, key:accessKey, ...payload});
+  const res = await fetch(API_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body});
+  const j = await res.json();
+  if (!j.ok && j.error==='AUTH'){
+    const k = prompt(accessKey ? '비밀번호가 맞지 않습니다. 다시 입력하세요.' : '접속 비밀번호를 입력하세요.');
+    if (k===null) throw new Error('비밀번호가 필요합니다');
+    accessKey = k; localStorage.setItem('callEval.key', k);
+    return api(action, payload);
+  }
+  if (!j.ok) throw new Error(j.error||'서버 오류');
+  return j.data;
+}
+
+function pad(n){return String(n).padStart(2,'0')}
+function stamp(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`}
+function today(){const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => (v===null||v===undefined||v===''||isNaN(v)) ? null : Number(v);
+function totalOf(r){ const s=(r.s||[]).map(num).filter(v=>v!==null); return s.length? s.reduce((a,b)=>a+b,0) : null; }
+const fmt1 = v => v===null||v===undefined||isNaN(v) ? '-' : (Math.round(v*10)/10).toString();
+const avg = a => { const v=a.filter(x=>x!==null&&x!==undefined&&!isNaN(x)); return v.length? v.reduce((p,c)=>p+c,0)/v.length : null; };
+const callFmt = s => (s||'').replace('T',' ');
+function normalize(r){ return {...r, s:(r.s||[]).map(num), m:(r.m||[]).map(x=>x??''), total: totalOf(r)}; }
+function label(r){ return `${r.edate||''} · ${r.mgr}${r.month?` (${r.month})`:''}${r.ptn?` - ${r.ptn}`:''}${r.total!==null?` · ${r.total}점`:''}`; }
+function sorted(arr){ return [...arr].sort((a,b)=> (b.edate||'').localeCompare(a.edate||'') || (b.updated||'').localeCompare(a.updated||'')); }
+
+let toastT;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2200); }
+function busy(on){ document.getElementById('loading').classList.toggle('on', on); }
+
+async function load(){
+  busy(true);
+  try{ DATA = (await api('list')).map(normalize); }
+  catch(e){ toast('불러오기 실패: '+e.message); }
+  finally{ busy(false); }
+  refreshAll();
+}
+
+/* ================= 화면 전환 ================= */
+let view='input';
+document.getElementById('nav').addEventListener('click', e=>{
+  const b=e.target.closest('button'); if(!b) return; show(b.dataset.v);
+});
+function show(v){
+  view=v;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
+  ['input','list','report','result'].forEach(k=>document.getElementById('v-'+k).hidden = k!==v);
+  refreshAll(); window.scrollTo(0,0);
+}
+function refreshAll(){ renderList(); renderReportSel(); renderReport(); renderResult(); }
+
+document.getElementById('mode').innerHTML = DEMO
+  ? '<b>데모 모드</b> · 이 브라우저에만 저장됩니다'
+  : '서버 연결됨 · 구글 시트 저장';
+
+/* ================= 입력 폼 ================= */
+const centerOpts = (all) => (all?'<option value="">전체</option>':'<option value="">선택</option>') + CENTERS.map(c=>`<option>${c}</option>`).join('');
+document.getElementById('f-center').innerHTML = centerOpts(false);
+document.getElementById('l-center').innerHTML = centerOpts(true);
+document.getElementById('s-center').innerHTML = centerOpts(true);
+
+(function buildForm(){
+  let html='';
+  ITEMS.forEach((it,i)=>{
+    const ci=catOf[i], first = i===0 || catOf[i-1]!==ci;
+    html += '<tr>';
+    if (first) html += `<td class="cat${CATS[ci].bonus?' bonus':''}" rowspan="${CATS[ci].n}">${esc(CATS[ci].name).replace(/\n/g,'<br>')}</td>`;
+    html += `<td class="item">${esc(it.t)}${it.c?`<small>예) ${esc(it.c)}</small>`:''}</td>
+      <td class="pts">${it.p}</td>
+      <td class="sc"><div class="chips">${it.ch.map(v=>`<button type="button" class="chip" data-i="${i}" data-v="${v}">${v}</button>`).join('')}</div>
+        <input type="number" min="0" max="${it.p}" step="0.5" id="s${i}" data-i="${i}" placeholder="-"></td>
+      <td class="memo"><textarea id="m${i}" placeholder="근거가 된 발화"></textarea></td></tr>`;
+  });
+  const tb=document.getElementById('formBody'); tb.innerHTML=html;
+  tb.addEventListener('click', e=>{
+    const c=e.target.closest('.chip'); if(!c) return;
+    const inp=document.getElementById('s'+c.dataset.i);
+    inp.value = (inp.value!=='' && Number(inp.value)===Number(c.dataset.v)) ? '' : c.dataset.v;
+    onScore(); markDirty();
+  });
+  tb.addEventListener('input', e=>{
+    if(e.target.matches('input[type=number]')){
+      const i=+e.target.dataset.i, v=e.target.value;
+      if(v!=='' && (Number(v)<0 || Number(v)>ITEMS[i].p)){ e.target.value=''; toast(`${i+1}번 항목은 0~${ITEMS[i].p}점까지 입력할 수 있어요`); }
+      onScore();
+    }
+    markDirty();
+  });
+})();
+['f-center','f-month','f-mgr','f-ptn','f-calldt','f-evr','f-edate'].forEach(id=>document.getElementById(id).addEventListener('input', markDirty));
+
+let editing=null, dirty=false;
+function markDirty(){ dirty=true; }
+function onScore(){
+  let t=0, n=0;
+  for(let i=0;i<N;i++){
+    const inp=document.getElementById('s'+i), v=num(inp.value);
+    if(v!==null){t+=v;n++;}
+    inp.closest('td').querySelectorAll('.chip').forEach(c=>c.classList.toggle('on', v!==null && Number(c.dataset.v)===v));
+  }
+  document.getElementById('f-total').textContent = Math.round(t*10)/10;
+  document.getElementById('f-filled').textContent = `${n} / ${N} 항목 입력`;
+}
+function fillForm(r){
+  editing = r ? r.id : null;
+  const g=id=>document.getElementById(id);
+  g('f-center').value=r?.center||''; g('f-month').value=r?.month||''; g('f-mgr').value=r?.mgr||''; g('f-ptn').value=r?.ptn||'';
+  g('f-calldt').value=(r?.calldt||'').replace(' ','T'); g('f-evr').value=r?.evr ?? (localStorage.getItem('callEval.evr')||'');
+  g('f-edate').value=r?.edate||today();
+  for(let i=0;i<N;i++){ g('s'+i).value = r && r.s[i]!==null && r.s[i]!==undefined ? r.s[i] : ''; g('m'+i).value = r?.m[i]||''; }
+  g('formTitle').textContent = r ? `평가 수정 — ${r.mgr} (${r.month||'차월 미입력'})` : '새 평가 입력';
+  g('btnDelete').style.display = r ? '' : 'none';
+  onScore(); dirty=false;
+}
+function readForm(){
+  const g=id=>document.getElementById(id).value.trim();
+  return { id:editing||'', center:g('f-center'), month:g('f-month'), mgr:g('f-mgr'), ptn:g('f-ptn'),
+    calldt:g('f-calldt').replace('T',' '), evr:g('f-evr'), edate:g('f-edate'),
+    s:ITEMS.map((_,i)=>num(document.getElementById('s'+i).value)),
+    m:ITEMS.map((_,i)=>document.getElementById('m'+i).value.trim()) };
+}
+document.getElementById('btnReset').onclick=()=>{ if(dirty && !confirm('작성 중인 내용이 사라집니다. 새로 작성할까요?')) return; fillForm(null); };
+document.getElementById('btnSave').onclick=async()=>{
+  const rec=readForm();
+  const miss=[]; if(!rec.center)miss.push('센터'); if(!rec.month)miss.push('차월'); if(!rec.mgr)miss.push('지점장');
+  if(miss.length){ toast(miss.join('·')+'을(를) 입력하세요'); return; }
+  const empty = rec.s.map((v,i)=>v===null?i+1:null).filter(Boolean);
+  if(empty.length && !confirm(`점수가 비어 있는 항목이 있어요: ${empty.join(', ')}번\n그래도 저장할까요?`)) return;
+  busy(true);
+  try{
+    const saved = normalize(await api('save',{rec}));
+    if(rec.evr) localStorage.setItem('callEval.evr', rec.evr);
+    const i=DATA.findIndex(r=>r.id===saved.id); if(i>=0) DATA[i]=saved; else DATA.push(saved);
+    toast(editing?'수정했습니다':'저장했습니다');
+    fillForm(null); refreshAll();
+  }catch(e){ toast('저장 실패: '+e.message); }
+  finally{ busy(false); }
+};
+document.getElementById('btnDelete').onclick=async()=>{
+  if(!editing) return;
+  const r=DATA.find(x=>x.id===editing);
+  if(!confirm(`${r?.mgr||''} 평가를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+  busy(true);
+  try{ await api('delete',{id:editing}); DATA=DATA.filter(x=>x.id!==editing); toast('삭제했습니다'); fillForm(null); refreshAll(); }
+  catch(e){ toast('삭제 실패: '+e.message); }
+  finally{ busy(false); }
+};
+window.addEventListener('beforeunload', e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
+
+/* ================= 목록 ================= */
+function listFiltered(){
+  const m=document.getElementById('l-month').value, c=document.getElementById('l-center').value, q=document.getElementById('l-q').value.trim();
+  return sorted(DATA).filter(r=>(!m||r.month===m)&&(!c||r.center===c)&&(!q||[r.mgr,r.ptn,r.evr].some(x=>(x||'').includes(q))));
+}
+['l-month','l-center','l-q'].forEach(id=>document.getElementById(id).addEventListener('input', renderList));
+function gradeCls(t){ return t===null?'':t>=90?'g-hi':t<60?'g-lo':''; }
+function renderList(){
+  const rows=listFiltered();
+  document.getElementById('listBody').innerHTML = rows.length ? rows.map(r=>`<tr>
+    <td class="num">${esc(r.edate)}</td><td class="num">${esc(r.center)}</td>
+    <td class="num">${r.month?`<span class="tag ${r.month==='2차월'?'t2':'t3'}">${esc(r.month)}</span>`:'-'}</td>
+    <td><b>${esc(r.mgr)}</b></td><td>${esc(r.ptn)}</td><td class="num">${esc(callFmt(r.calldt))}</td><td class="num">${esc(r.evr)}</td>
+    <td class="num ${gradeCls(r.total)}">${r.total??'-'}</td>
+    <td class="num" style="white-space:nowrap"><button class="btn sm ghost" data-a="rep" data-id="${r.id}">리포트</button>
+      <button class="btn sm ghost" data-a="edit" data-id="${r.id}">수정</button></td></tr>`).join('')
+    : `<tr><td colspan="9" class="empty">평가가 없습니다. '평가 입력'에서 추가하세요.</td></tr>`;
+}
+document.getElementById('listBody').addEventListener('click', e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  const r=DATA.find(x=>x.id===b.dataset.id); if(!r) return;
+  if(b.dataset.a==='edit'){ if(dirty && !confirm('작성 중인 내용이 사라집니다. 계속할까요?')) return; fillForm(r); show('input'); }
+  else { document.getElementById('r-sel').value=r.id; show('report'); }
+});
+document.getElementById('btnCsv').onclick=()=>{
+  const rows=listFiltered();
+  const head=['평가일','센터','차월','지점장','파트너스명','통화일시','평가자',...SHORT.map((s,i)=>`${i+1}.${s}(${ITEMS[i].p})`),'합계',...SHORT.map((s,i)=>`메모${i+1}.${s}`)];
+  const q=v=>{ v=String(v??''); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  const lines=[head.map(q).join(',')].concat(rows.map(r=>[r.edate,r.center,r.month,r.mgr,r.ptn,callFmt(r.calldt),r.evr,...r.s.map(v=>v??''),r.total??'',...r.m].map(q).join(',')));
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`콜평가_${today()}.csv`; a.click(); URL.revokeObjectURL(a.href);
+};
+document.getElementById('btnPrintAll').onclick=()=>{
+  const rows=listFiltered(); if(!rows.length){ toast('인쇄할 평가가 없습니다'); return; }
+  doPrint(rows.map(reportHTML).join(''));
+};
+
+/* ================= 개인 리포트 ================= */
+function renderReportSel(){
+  const sel=document.getElementById('r-sel'), cur=sel.value;
+  sel.innerHTML = DATA.length ? sorted(DATA).map(r=>`<option value="${r.id}">${esc(label(r))}</option>`).join('') : '<option value="">평가가 없습니다</option>';
+  if(cur && DATA.some(r=>r.id===cur)) sel.value=cur;
+}
+document.getElementById('r-sel').addEventListener('change', renderReport);
+function renderReport(){
+  const r=DATA.find(x=>x.id===document.getElementById('r-sel').value);
+  document.getElementById('reportBox').innerHTML = r ? reportHTML(r) : '<div class="card empty">평가를 선택하세요.</div>';
+}
+function reportHTML(r){
+  const peers = DATA.filter(x=>x.month && x.month===r.month);
+  const itemAvg = i => avg(peers.map(x=>x.s[i]));
+  const totAvg = avg(peers.map(x=>x.total));
+  const ranked = peers.filter(x=>x.total!==null);
+  const rank = r.total!==null && r.month ? ranked.filter(x=>x.total>r.total).length+1 : null;
+  let rows='';
+  ITEMS.forEach((it,i)=>{
+    const ci=catOf[i], first=i===0||catOf[i-1]!==ci;
+    rows+='<tr>';
+    if(first) rows+=`<td class="cat${CATS[ci].bonus?' bonus':''}" rowspan="${CATS[ci].n}">${esc(CATS[ci].name).replace(/\n/g,'<br>')}</td>`;
+    rows+=`<td class="item">${esc(it.t)}</td><td class="crit">${esc(it.c)}</td><td class="pts">${it.p}</td>
+      <td class="score">${r.s[i]??''}</td><td class="avg">${r.month?fmt1(itemAvg(i)):'-'}</td><td class="memo">${esc(r.m[i])}</td></tr>`;
+  });
+  return `<div class="report">
+    <h3>2~3차월 콜 평가표</h3>
+    <table class="info"><tr><th>센터</th><th>차월</th><th>지점장</th><th>파트너스명</th><th>통화일시</th><th>평가자</th><th>평가일</th></tr>
+      <tr><td>${esc(r.center)}</td><td style="color:var(--red)">${esc(r.month)}</td><td>${esc(r.mgr)}</td><td>${esc(r.ptn)}</td>
+      <td>${esc(callFmt(r.calldt))}</td><td>${esc(r.evr)}</td><td>${esc(r.edate)}</td></tr></table>
+    <div style="height:10px"></div>
+    <table class="ev"><colgroup><col style="width:13%"><col style="width:33%"><col style="width:17%"><col style="width:5%"><col style="width:6%"><col style="width:6%"><col style="width:20%"></colgroup><thead><tr><th>구분</th><th>평가 항목</th><th>판단 기준 · 실제 사례</th><th>배점</th><th>점수</th><th>차월<br>평균</th><th>평가 메모 (근거가 된 발화)</th></tr></thead>
+    <tbody>${rows}
+      <tr class="tot"><td colspan="3">합계</td><td>${MAXP}</td><td class="score">${r.total??'-'}</td><td>${r.month?fmt1(totAvg):'-'}</td>
+      <td>${rank?`${esc(r.month)} ${rank}위 / ${ranked.length}명 중`:''}</td></tr></tbody></table>
+    <div class="foot">※ 차월 평균은 같은 차월 평가 전체의 평균, 순위는 같은 차월 내 합계 기준입니다. (출력일 ${today()})</div>
+  </div>`;
+}
+document.getElementById('btnPrintOne').onclick=()=>{
+  const r=DATA.find(x=>x.id===document.getElementById('r-sel').value); if(!r){toast('평가를 선택하세요');return;}
+  doPrint(reportHTML(r));
+};
+document.getElementById('btnEditFromReport').onclick=()=>{
+  const r=DATA.find(x=>x.id===document.getElementById('r-sel').value); if(!r) return;
+  if(dirty && !confirm('작성 중인 내용이 사라집니다. 계속할까요?')) return;
+  fillForm(r); show('input');
+};
+
+/* ================= 전체 결과 ================= */
+['s-month','s-center'].forEach(id=>document.getElementById(id).addEventListener('input', renderResult));
+function renderResult(){ document.getElementById('resultBox').innerHTML = resultHTML(); }
+function resultHTML(){
+  const fm=document.getElementById('s-month').value, fc=document.getElementById('s-center').value;
+  const valid = DATA.filter(r=>MONTHS.includes(r.month));
+  const sel = valid.filter(r=>(!fm||r.month===fm)&&(!fc||r.center===fc))
+                   .sort((a,b)=>CENTERS.indexOf(a.center)-CENTERS.indexOf(b.center)||a.month.localeCompare(b.month)||(a.mgr||'').localeCompare(b.mgr||''));
+  const tots = a => a.map(r=>r.total).filter(v=>v!==null);
+  const statCard = (k, arr) => { const t=tots(arr); return `<div class="stat"><div class="k">${k}</div>
+      <div class="v">${t.length?fmt1(avg(t)):'-'}<span style="font-size:13px;color:var(--muted)"> 점</span></div>
+      <div class="s">${t.length}명 · 최고 ${t.length?Math.max(...t):'-'} · 최저 ${t.length?Math.min(...t):'-'} · 90점↑ ${t.filter(v=>v>=90).length}명</div></div>`; };
+  const filterName = `${fm||'전체 차월'} · ${fc||'전체 센터'}`;
+  let h = `<div class="stats">${statCard('2차월 평균',valid.filter(r=>r.month==='2차월'))}${statCard('3차월 평균',valid.filter(r=>r.month==='3차월'))}
+    ${statCard('전체 평균',valid)}${statCard('선택: '+filterName, sel)}</div>`;
+
+  // 센터별
+  h += `<div class="card"><h2>센터별 · 차월별 통계</h2><div class="matrix"><table><thead><tr><th>센터</th><th>2차월 인원</th><th>2차월 평균</th><th>3차월 인원</th><th>3차월 평균</th><th>합계 인원</th><th>합계 평균</th></tr></thead><tbody>`;
+  CENTERS.forEach(c=>{
+    const a2=tots(valid.filter(r=>r.center===c&&r.month==='2차월')), a3=tots(valid.filter(r=>r.center===c&&r.month==='3차월')), all=a2.concat(a3);
+    h+=`<tr><td class="ph">${c}</td><td class="v">${a2.length||'-'}</td><td class="v">${fmt1(avg(a2))}</td><td class="v">${a3.length||'-'}</td><td class="v">${fmt1(avg(a3))}</td>
+        <td class="avg">${all.length||'-'}</td><td class="avg">${fmt1(avg(all))}</td></tr>`;
+  });
+  h += `</tbody></table></div></div>`;
+
+  // 사람별 매트릭스 (엑셀 결과표 형식)
+  h += `<div class="card"><h2>사람별 점수 — ${esc(filterName)} (${sel.length}명)</h2><div class="matrix"><table><thead>`;
+  const ph = (lab, f) => `<tr><th colspan="3" style="text-align:right">${lab}</th><th></th><th></th><th></th>${sel.map(r=>`<td class="ph">${f(r)}</td>`).join('')}</tr>`;
+  h += ph('센터', r=>esc(r.center)) + ph('차월', r=>`<span style="color:var(--red)">${esc(r.month)}</span>`) + ph('지점장', r=>`<b>${esc(r.mgr)}</b>`) + ph('파트너스명', r=>esc(r.ptn)) + ph('평가일', r=>esc(r.edate));
+  h += `<tr><th>구분</th><th>평가 항목</th><th>배점</th><th>2차월<br>평균</th><th>3차월<br>평균</th><th>전체<br>평균</th>${sel.map(()=>'<th>점수</th>').join('')}</tr></thead><tbody>`;
+  const A = (m,i) => avg(valid.filter(r=>!m||r.month===m).map(r=> i===null ? r.total : r.s[i]));
+  ITEMS.forEach((it,i)=>{
+    const ci=catOf[i], first=i===0||catOf[i-1]!==ci;
+    h+='<tr>';
+    if(first) h+=`<td class="cat${CATS[ci].bonus?' bonus':''}" rowspan="${CATS[ci].n}">${esc(CATS[ci].name).replace(/\n/g,'<br>')}</td>`;
+    h+=`<td class="item">${i+1}. ${esc(SHORT[i])}</td><td class="pts">${it.p}</td>
+      <td class="avg">${fmt1(A('2차월',i))}</td><td class="avg">${fmt1(A('3차월',i))}</td><td class="avg">${fmt1(A('',i))}</td>
+      ${sel.map(r=>`<td class="v">${r.s[i]??''}</td>`).join('')}</tr>`;
+  });
+  h+=`<tr class="tot"><td colspan="2">합계</td><td>${MAXP}</td><td>${fmt1(A('2차월',null))}</td><td>${fmt1(A('3차월',null))}</td><td>${fmt1(A('',null))}</td>
+      ${sel.map(r=>`<td class="${r.total>=90?'hi':r.total!==null&&r.total<60?'lo':''}">${r.total??'-'}</td>`).join('')}</tr>`;
+  h += `</tbody></table></div>${sel.length?'':'<div class="empty">선택한 조건에 해당하는 평가가 없습니다.</div>'}</div>`;
+  const noMonth = DATA.length - valid.length;
+  if(noMonth) h += `<div class="hint">※ 차월이 입력되지 않은 평가 ${noMonth}건은 통계에서 제외됐습니다.</div>`;
+  return h;
+}
+document.getElementById('btnPrintResult').onclick=()=>{
+  doPrint(`<div class="report wide"><h3>2~3차월 콜 평가 결과 <span style="font-size:12px;color:var(--muted);font-weight:400">(출력일 ${today()})</span></h3>${resultHTML()}</div>`);
+};
+
+/* ================= 인쇄 ================= */
+function doPrint(html){
+  const pa=document.getElementById('printArea'); pa.innerHTML=html;
+  setTimeout(()=>{ window.print(); }, 50);
+}
+window.addEventListener('afterprint', ()=>{ document.getElementById('printArea').innerHTML=''; });
+
+document.getElementById('f-max').textContent = `/ ${MAXP} (가점 ${ITEMS[N-1].p}점 포함)`;
+fillForm(null);
+load();
+</script>
+</body>
+</html>
