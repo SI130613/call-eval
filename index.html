@@ -42,6 +42,8 @@
   .btn.ghost{background:#fff;color:var(--navy)}
   .btn.warn{background:#fff;color:var(--red);border-color:var(--red)}
   .btn.gold{background:#FFD34D;color:#1E2761;border-color:#FFD34D}
+  .btn.pvb{background:#fff;color:#1E2761;border:2px solid #FFD34D;font-weight:800}
+  body.pv-open .btn.pvb{background:#FFD34D}
   .btn.sm{padding:4px 10px;font-size:12px}
   .btn:disabled{opacity:.5;cursor:default}
   .hint{font-size:12px;color:var(--muted)}
@@ -224,7 +226,6 @@
   <section id="v-input">
     <div class="card">
       <h2><span id="formTitle">새 평가 입력</span><span class="sp"></span>
-        <button class="btn sm gold" id="btnPv">미리보기</button>
         <button class="btn sm ghost" id="btnBlank">빈 평가시트(엑셀) 다운로드</button>
         <button class="btn sm" id="btnUpEval">작성한 평가시트 업로드</button>
       </h2>
@@ -256,6 +257,7 @@
       <span class="vtag need" id="f-vneed" style="font-size:12px"></span>
       <button class="btn sm" id="btnVAll" hidden style="background:#C2185B;border-color:#C2185B">검증필요 전부 검증완료</button>
       <div class="sp"></div>
+      <button class="btn pvb" id="btnPv">미리보기</button>
       <button class="btn ghost" id="btnReset">새로 작성</button>
       <button class="btn warn" id="btnDelete" hidden>삭제</button>
       <button class="btn gold" id="btnSave">저장</button>
