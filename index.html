@@ -136,6 +136,14 @@
   .pv-memo .src.sms{background:#E2F3E5;color:#1D6B30}
   .pv-memo .warn{background:#FFE0E0;color:#A40000;font-weight:700;border-radius:3px;padding:0 3px}
   .pv-empty{color:var(--muted);font-size:13px}
+  .pv-note{display:block;width:100%;margin-top:6px;border:1px dashed #B0B8D4;border-radius:6px;background:#FFFFFFCC;padding:6px 8px;font:inherit;font-size:13px;line-height:1.55;resize:vertical;min-height:34px;color:#333}
+  .pv-note:focus{outline:2px solid #5C6BC0;border-style:solid;background:#fff}
+  .pv-note.has{border-style:solid;border-color:#7E57C2;background:#F6F1FF}
+  .pv-cm{margin:0 0 12px;padding:10px 12px;border:1px solid #CFD6EA;border-left:4px solid var(--navy);border-radius:8px;background:#F7F9FF;font-size:13.5px;line-height:1.6;white-space:pre-wrap}
+  .pv-cm b{display:block;font-size:12px;color:var(--navy);margin-bottom:3px}
+  #f-cm{width:100%;min-height:58px;resize:vertical;font:inherit;font-size:14px;line-height:1.55;padding:8px 10px;border:1px solid var(--line,#ccd);border-radius:6px}
+  .report .cm{margin-top:10px;border:1px solid #9AA3C0;padding:8px 10px;font-size:12.5px;line-height:1.6;white-space:pre-wrap}
+  .report .cm b{color:var(--navy)}
   body.pv-open main{margin-right:min(46vw,720px)}
   body.pv-open #v-input .totalbar{right:0}
   #formBody tr.flash td:not(.cat){animation:flash 1.2s}
@@ -230,6 +238,9 @@
         <label class="f">파트너스명<input id="f-ptn" style="width:110px"></label>
         <label class="f">통화일시<input id="f-calldt" type="datetime-local"></label>
         <label class="f">평가자<input id="f-evr" readonly style="width:90px"></label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="f" style="flex:1">총평<textarea id="f-cm" placeholder="이 지점장 콜 전반에 대한 총평 (성향·강점·보완점 등)"></textarea></label>
       </div>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
@@ -425,7 +436,7 @@ function totalOf(r){ const s=(r.s||[]).map(num).filter(v=>v!==null); return s.le
 const fmt1 = v => v===null||v===undefined||isNaN(v) ? '-' : (Math.round(v*10)/10).toString();
 const avg = a => { const v=a.filter(x=>x!==null&&x!==undefined&&!isNaN(x)); return v.length? v.reduce((p,c)=>p+c,0)/v.length : null; };
 const callFmt = s => (s||'').replace('T',' ');
-function normalize(r){ const v=(r.v||[]).slice(0,N); while(v.length<N) v.push(''); return {...r, s:(r.s||[]).map(num), m:(r.m||[]).map(x=>x??''), v, total: totalOf(r)}; }
+function normalize(r){ const v=(r.v||[]).slice(0,N); while(v.length<N) v.push(''); const n=(r.n||[]).slice(0,N).map(x=>x??''); while(n.length<N) n.push(''); return {...r, s:(r.s||[]).map(num), m:(r.m||[]).map(x=>x??''), v, n, cm:r.cm||'', total: totalOf(r)}; }
 const vNeed = r => (r.v||[]).filter(x=>x==='필요').length;
 const vDone = r => (r.v||[]).filter(x=>x==='완료').length;
 function label(r){ return `${r.edate||''} · ${r.mgr}${r.month?` (${r.month})`:''}${r.ptn?` - ${r.ptn}`:''}${r.total!==null?` · ${r.total}점`:''}`; }
@@ -542,7 +553,7 @@ $('f-center').innerHTML = centerOpts('전체'); $('l-center').innerHTML = center
 })();
 ['f-ptnCode','f-ptn','f-calldt'].forEach(id=>$(id).addEventListener('input', ()=>dirty=true));
 
-let editing=null, editRec=null, dirty=false, formV=Array(N).fill('');
+let editing=null, editRec=null, dirty=false, formV=Array(N).fill(''), formN=Array(N).fill('');
 function renderV(){
   let need=0;
   for(let i=0;i<N;i++){
@@ -578,7 +589,8 @@ function renderPreview(){
   $('pvMeta').textContent = `${g('f-month')||'차월?'} · ${m?.center||g('f-center')||''} · 파트너스코드 ${g('f-ptnCode')||'-'} · 평가일 ${g('f-edate')||'-'} · 합계 ${Math.round(tot*10)/10} / ${MAXP}`
     + (formV.filter(v=>v==='필요').length ? ` · 검증필요 ${formV.filter(v=>v==='필요').length}개` : '');
   const onlyNeed=$('pvOnlyNeed').checked, onlyLow=$('pvOnlyLow').checked;
-  let html='';
+  const cm=$('f-cm').value.trim();
+  let html = cm ? `<div class="pv-cm"><b>총평</b>${esc(cm)}</div>` : '';
   ITEMS.forEach((it,i)=>{
     const st=formV[i]||'', v=sc[i];
     if(onlyNeed && st!=='필요') return;
@@ -589,9 +601,11 @@ function renderPreview(){
         <span class="pv-sc ${v!==null&&v>=it.p?'full':''}">${v===null?'미입력':v} <small>/ ${it.p}</small></span></div>
       <div class="pv-q">${esc(it.t)}</div>
       <div class="pv-memo">${memo?memoHTML(memo):'<span class="pv-empty">메모 없음</span>'}</div>
-      <div class="vbox">${vBtns(i,st)}</div></div>`;
+      <div class="vbox">${vBtns(i,st)}</div>
+      <textarea class="pv-note${formN[i]?' has':''}" data-ni="${i}" rows="${Math.min(8,Math.max(1,(formN[i]||'').split('\n').length))}" placeholder="검증 메모 (미리보기에서만 보여요)">${esc(formN[i]||'')}</textarea></div>`;
   });
   $('pvBody').innerHTML = html || '<div class="pv-empty">조건에 맞는 항목이 없습니다.</div>';
+  $('pvBody').querySelectorAll('.pv-note').forEach(fitNote);
 }
 function setPv(open){
   $('pv').hidden=!open; document.body.classList.toggle('pv-open', open);
@@ -605,10 +619,18 @@ $('pvClose').onclick=()=>setPv(false);
 $('pvBody').addEventListener('click', e=>{
   const vb=e.target.closest('[data-vi]');
   if(vb){ formV[+vb.dataset.vi]=vb.dataset.to; dirty=true; renderV(); return; }
+  if(e.target.closest('.pv-note')) return;
   const it=e.target.closest('[data-go]'); if(!it) return;
   const tr=$('frow'+it.dataset.go); tr.scrollIntoView({behavior:'smooth', block:'center'});
   tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash');
 });
+function fitNote(el){ el.style.height='auto'; el.style.height=Math.min(Math.max(el.scrollHeight+2,34),240)+'px'; }
+$('pvBody').addEventListener('input', e=>{
+  const t=e.target.closest('.pv-note'); if(!t) return;
+  formN[+t.dataset.ni]=t.value; t.classList.toggle('has', !!t.value.trim()); fitNote(t); dirty=true;
+});
+$('f-cm').addEventListener('input', ()=>{ dirty=true; fitCm(); pvLater(); });
+function fitCm(){ const el=$('f-cm'); el.style.height='auto'; el.style.height=Math.min(Math.max(el.scrollHeight+2,58),300)+'px'; }
 let pvT; const pvLater=()=>{ clearTimeout(pvT); pvT=setTimeout(renderPreview,150); };
 ['f-month','f-center','f-mgr','f-ptnCode','f-ptn','f-edate'].forEach(id=>$(id).addEventListener('input', pvLater));
 function fitMemo(el){ el.style.height='auto'; el.style.height=Math.min(Math.max(el.scrollHeight+2,52),260)+'px'; }
@@ -661,6 +683,8 @@ function fillForm(r){
   $('f-ptnCode').value=r?.ptnCode||''; $('f-ptn').value=r?.ptn||'';
   $('f-calldt').value=(r?.calldt||'').replace(' ','T'); $('f-evr').value=r ? r.evr : (ME?.name||'');
   for(let i=0;i<N;i++){ $('s'+i).value = r && r.s[i]!==null && r.s[i]!==undefined ? r.s[i] : ''; $('m'+i).value = r?.m[i]||''; }
+  formN = r ? [...(r.n||[])] : []; while(formN.length<N) formN.push('');
+  $('f-cm').value = r?.cm||''; requestAnimationFrame(fitCm);
   formV = r ? [...(r.v||[])] : []; while(formV.length<N) formV.push(''); renderV();
   requestAnimationFrame(()=>{ for(let i=0;i<N;i++) fitMemo($('m'+i)); });
   $('formTitle').textContent = r ? `평가 수정 — ${r.mgr} (${r.month||'차월 미입력'})` : '새 평가 입력';
@@ -672,7 +696,8 @@ function readForm(){
   const m=MGRS.find(x=>x.empno===e) || (editRec && editRec.mgrEmp===e ? {name:editRec.mgr, center:editRec.center} : {});
   return { id:editing||'', center:m.center||g('f-center'), month:g('f-month'), mgrEmp:e, mgr:m.name||'', ptnCode:g('f-ptnCode'), ptn:g('f-ptn'),
     calldt:g('f-calldt').replace('T',' '), edate:g('f-edate'),
-    s:ITEMS.map((_,i)=>num($('s'+i).value)), m:ITEMS.map((_,i)=>$('m'+i).value.trim()), v:[...formV] };
+    s:ITEMS.map((_,i)=>num($('s'+i).value)), m:ITEMS.map((_,i)=>$('m'+i).value.trim()), v:[...formV],
+    n:formN.map(x=>(x||'').trim()), cm:$('f-cm').value.trim() };
 }
 function mergeRec(rec){ const n=normalize(rec); const i=DATA.findIndex(r=>r.id===n.id); if(i>=0) DATA[i]=n; else DATA.push(n); return n; }
 $('btnVAll').onclick=()=>{ formV=formV.map(v=>v==='필요'?'완료':v); renderV(); dirty=true; toast('검증필요 항목을 모두 검증완료로 바꿨어요. 저장을 눌러야 반영됩니다'); };
@@ -724,9 +749,9 @@ $('listBody').addEventListener('click', e=>{
 });
 $('btnCsv').onclick=()=>{
   const rows=listFiltered();
-  const head=['평가일','센터','차월','지점장사번','지점장','파트너스코드','파트너스명','통화일시','평가자',...SHORT.map((s,i)=>`${i+1}.${s}(${ITEMS[i].p})`),'합계',...SHORT.map((s,i)=>`메모${i+1}.${s}`)];
+  const head=['평가일','센터','차월','지점장사번','지점장','파트너스코드','파트너스명','통화일시','평가자',...SHORT.map((s,i)=>`${i+1}.${s}(${ITEMS[i].p})`),'합계',...SHORT.map((s,i)=>`메모${i+1}.${s}`),'총평'];
   const q=v=>{ v=String(v??''); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
-  const lines=[head.map(q).join(',')].concat(rows.map(r=>[r.edate,r.center,r.month,r.mgrEmp,r.mgr,r.ptnCode,r.ptn,callFmt(r.calldt),r.evr,...r.s.map(v=>v??''),r.total??'',...r.m].map(q).join(',')));
+  const lines=[head.map(q).join(',')].concat(rows.map(r=>[r.edate,r.center,r.month,r.mgrEmp,r.mgr,r.ptnCode,r.ptn,callFmt(r.calldt),r.evr,...r.s.map(v=>v??''),r.total??'',...r.m,r.cm||''].map(q).join(',')));
   download(new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}), `콜평가_목록_${today()}.csv`);
 };
 $('btnPrintAll').onclick=()=>{ const rows=listFiltered(); if(!rows.length){ toast('인쇄할 평가가 없습니다'); return; } doPrint(rows.map(reportHTML).join('')); };
@@ -765,6 +790,7 @@ function reportHTML(r){
     <tbody>${rows}
       <tr class="tot"><td colspan="3">합계</td><td>${MAXP}</td><td class="score">${r.total??'-'}</td><td>${r.month?fmt1(avg(peers.map(x=>x.total))):'-'}</td>
       <td>${rank?`${esc(r.month)} ${rank}위 / ${ranked.length}명 중`:''}</td></tr></tbody></table>
+    ${r.cm?`<div class="cm"><b>총평</b> · ${esc(r.cm)}</div>`:''}
     <div class="foot">※ 차월 평균은 같은 차월 평가 전체의 평균, 순위는 같은 차월 내 합계 기준입니다. (출력일 ${today()})</div>
   </div>`;
 }
@@ -878,6 +904,13 @@ function addEvalSheet(wb, name, r, nMgr){
     sty(d,{bold:true,fill:auto[1]?XC.light:XC.yel,h:'center',fmt:k===2?'yyyy-mm-dd':'@'});
     ['E','F'].forEach(x=>{ ws.getCell(`${x}${R}`).border=BORDER; });
   });
+  { const R=XROW.info+info.length; ws.mergeCells(`B${R}:F${R}`);    // 8행: 총평
+    const a=ws.getCell(`A${R}`), b=ws.getCell(`B${R}`);
+    a.value='총평'; b.value=r?.cm||'';
+    sty(a,{bold:true,fill:XC.pale,color:XC.navy,h:'center'});
+    sty(b,{fill:XC.yel,h:'left',fmt:'@'}); b.alignment={vertical:'top',horizontal:'left',wrapText:true};
+    ['C','D','E','F'].forEach(x=>{ ws.getCell(`${x}${R}`).border=BORDER; });
+    ws.getRow(R).height=Math.max(48, Math.ceil((r?.cm||'').length/70)*15+6); }
   ws.getCell('B3').dataValidation={type:'date',operator:'greaterThan',allowBlank:true,formulae:[new Date(Date.UTC(2020,0,1))],showErrorMessage:true,errorTitle:'평가일',error:'날짜를 2026-11-18 처럼 입력하세요'};
   ws.getCell('B4').dataValidation={type:'list',allowBlank:true,showErrorMessage:false,formulae:[`${L}!$G$2:$G$${last}`]};
   const H=XROW.head;
@@ -978,7 +1011,7 @@ function callTxt(v){
   if(typeof v==='number' && v>20000) return dtStr(new Date(Math.round((v-25569)*864e5)), true);
   return String(v??'').trim().replace('T',' ');
 }
-const LABELS=['평가일','지점장','지점장사번','센터','차월','입사일','파트너스코드','파트너스명','통화일시'];
+const LABELS=['평가일','지점장','지점장사번','센터','차월','입사일','파트너스코드','파트너스명','통화일시','총평'];
 function monthNorm(v){ const t=String(v??'').trim(); if(/^2/.test(t)) return '2차월'; if(/^3/.test(t)) return '3차월'; return ''; }
 async function parseEvalFile(file){
   await loadXL();
@@ -1027,6 +1060,7 @@ async function parseEvalFile(file){
     if(!err && !month) err='차월을 알 수 없습니다 — 지점장 명단에 입사일을 넣어 주세요';
     const rec={ id: old?old.id:'', edate, center: mg?.center||txt(info['센터']), month,
       mgrEmp: mg?.empno||emp, mgr: mg?.name||txt(info['지점장']), ptnCode, ptn, calldt: callTxt(info['통화일시']), s, m };
+    if('총평' in info) rec.cm=txt(info['총평']);
     rec.total=totalOf(rec);
     out.push({sheet:ws.name, rec, status: err?'err':(old?'upd':'new'), msg: err || (old?'기존 평가 수정':(id?'신규 (원래 평가는 삭제됨)':'신규 등록'))});
   });
