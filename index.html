@@ -112,6 +112,35 @@
   .list tr.vpink td{background:#FCE4EC}
   .list tr.vpink:hover td{background:#F8D3E1}
   .matrix td.vneed{background:#F8BBD0!important}
+  /* 미리보기 패널 (입력 화면과 동시에 사용) */
+  .pv{position:fixed;right:0;top:var(--hh,56px);bottom:0;width:min(46vw,720px);background:#fff;border-left:1px solid var(--line);box-shadow:-6px 0 18px rgba(20,25,60,.12);z-index:9;display:flex;flex-direction:column}
+  .pv-head{padding:12px 16px;border-bottom:1px solid var(--line);background:var(--pale)}
+  .pv-head .t{font-weight:800;color:var(--navy);font-size:15px}
+  .pv-head .m{font-size:12px;color:var(--muted);margin-top:3px}
+  .pv-tools{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+  .pv-body{overflow:auto;padding:12px 16px 40px;flex:1}
+  .pv-item{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s}
+  .pv-item:hover{box-shadow:0 2px 10px rgba(30,39,97,.12)}
+  .pv-item.v-need{background:#F8BBD0;border-color:#E91E63}
+  .pv-item.v-done{background:#FDE7EF;border-color:#F48FB1}
+  .pv-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pv-no{font-weight:800;color:var(--navy)}
+  .pv-cat{font-size:11px;color:var(--muted)}
+  .pv-sc{margin-left:auto;font-weight:800;font-size:14px;color:var(--red);white-space:nowrap}
+  .pv-sc.full{color:#1D6B30}
+  .pv-sc small{color:var(--muted);font-weight:600}
+  .pv-q{font-size:12px;color:var(--muted);margin:4px 0 6px;line-height:1.4}
+  .pv-memo{font-size:13.5px;line-height:1.65;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;color:var(--text)}
+  .pv-memo .src{display:inline-block;font-size:11.5px;font-weight:800;border-radius:4px;padding:0 5px;margin:0 2px;background:#E3ECFF;color:#1F4E9E}
+  .pv-memo .src.kt{background:#FFF1A8;color:#6B5200}
+  .pv-memo .src.sms{background:#E2F3E5;color:#1D6B30}
+  .pv-memo .warn{background:#FFE0E0;color:#A40000;font-weight:700;border-radius:3px;padding:0 3px}
+  .pv-empty{color:var(--muted);font-size:13px}
+  body.pv-open main{margin-right:min(46vw,720px)}
+  body.pv-open #v-input .totalbar{right:0}
+  #formBody tr.flash td:not(.cat){animation:flash 1.2s}
+  @keyframes flash{0%{box-shadow:inset 0 0 0 3px #FFD34D}100%{box-shadow:inset 0 0 0 0 transparent}}
+  @media (max-width:900px){ .pv{width:100vw} body.pv-open main{margin-right:0} }
   /* 로그인 · 모달 */
   #login{position:fixed;inset:0;background:linear-gradient(135deg,#1E2761,#2E3A80);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
   .lcard{background:#fff;border-radius:12px;padding:34px 32px;width:100%;max-width:380px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
@@ -137,7 +166,7 @@
   @page wide{size:A4 landscape;margin:8mm}
   @media print{
     body{background:#fff}
-    header,main,.banner,.toast,.loading,#login,.modal{display:none!important}
+    header,main,.banner,.toast,.loading,#login,.modal,.pv{display:none!important}
     #printArea{display:block}
     #printArea .report{border:0;padding:0;max-width:none;margin:0;break-after:page}
     #printArea .report:last-child{break-after:auto}
@@ -187,6 +216,7 @@
   <section id="v-input">
     <div class="card">
       <h2><span id="formTitle">새 평가 입력</span><span class="sp"></span>
+        <button class="btn sm gold" id="btnPv">미리보기</button>
         <button class="btn sm ghost" id="btnBlank">빈 평가시트(엑셀) 다운로드</button>
         <button class="btn sm" id="btnUpEval">작성한 평가시트 업로드</button>
       </h2>
@@ -292,6 +322,18 @@
   </section>
 </main>
 
+<aside class="pv" id="pv" hidden>
+  <div class="pv-head">
+    <div style="display:flex;align-items:center;gap:8px"><div class="t" id="pvTitle">미리보기</div><span class="sp"></span><button class="btn sm ghost" id="pvClose">닫기 ✕</button></div>
+    <div class="m" id="pvMeta"></div>
+    <div class="pv-tools">
+      <label class="hint" style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="pvOnlyNeed"> 검증필요만 보기</label>
+      <label class="hint" style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="pvOnlyLow"> 감점 항목만 보기</label>
+      <span class="sp"></span><span class="hint">항목을 누르면 입력 화면의 그 항목으로 이동해요</span>
+    </div>
+  </div>
+  <div class="pv-body" id="pvBody"></div>
+</aside>
 <input type="file" id="fileEval" accept=".xlsx" hidden>
 <input type="file" id="fileMgr" accept=".xlsx" hidden>
 <input type="file" id="fileAdm" accept=".xlsx" hidden>
@@ -456,6 +498,7 @@ $('btnPw').onclick=openPw; $('btnPw2').onclick=openPw;
 /* ================= 화면 전환 ================= */
 $('nav').addEventListener('click', e=>{ const b=e.target.closest('button'); if(b) show(b.dataset.v); });
 function show(v){
+  if(v!=='input' && !$('pv').hidden) setPv(false);
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
   ['input','list','report','result','admin'].forEach(k=>$('v-'+k).hidden = k!==v);
   refreshAll(); window.scrollTo(0,0);
@@ -485,7 +528,7 @@ $('f-center').innerHTML = centerOpts('전체'); $('l-center').innerHTML = center
     const c=e.target.closest('.chip'); if(!c) return;
     const inp=$('s'+c.dataset.i);
     inp.value = (inp.value!=='' && Number(inp.value)===Number(c.dataset.v)) ? '' : c.dataset.v;
-    onScore(); dirty=true;
+    onScore(); dirty=true; pvLater();
   });
   tb.addEventListener('input', e=>{
     if(e.target.matches('input[type=number]')){
@@ -493,7 +536,8 @@ $('f-center').innerHTML = centerOpts('전체'); $('l-center').innerHTML = center
       if(v!=='' && (Number(v)<0 || Number(v)>ITEMS[i].p)){ e.target.value=''; toast(`${i+1}번 항목은 0~${ITEMS[i].p}점까지 입력할 수 있어요`); }
       onScore();
     }
-    dirty=true;
+    if(e.target.tagName==='TEXTAREA') fitMemo(e.target);
+    dirty=true; pvLater();
   });
 })();
 ['f-ptnCode','f-ptn','f-calldt'].forEach(id=>$(id).addEventListener('input', ()=>dirty=true));
@@ -505,15 +549,69 @@ function renderV(){
     const st=formV[i]||'', tr=$('frow'+i);
     tr.classList.toggle('v-need', st==='필요'); tr.classList.toggle('v-done', st==='완료');
     if(st==='필요') need++;
-    $('vb'+i).innerHTML = st==='필요'
-      ? `<span class="vtag need">검증필요</span><button type="button" class="vbtn ok" data-vi="${i}" data-to="완료">검증완료</button><button type="button" class="vbtn x" data-vi="${i}" data-to="">취소</button>`
-      : st==='완료'
-      ? `<span class="vtag done">✓ 검증완료</span><button type="button" class="vbtn x" data-vi="${i}" data-to="필요">다시 검증필요</button>`
-      : `<button type="button" class="vbtn" data-vi="${i}" data-to="필요">검증필요</button>`;
+    $('vb'+i).innerHTML = vBtns(i, st);
   }
   $('f-vneed').textContent = need ? `검증필요 ${need}개` : '';
   $('btnVAll').hidden = !need;
+  renderPreview();
 }
+/* ---------- 미리보기 ---------- */
+function vBtns(i, st){
+  return st==='필요'
+    ? `<span class="vtag need">검증필요</span><button type="button" class="vbtn ok" data-vi="${i}" data-to="완료">검증완료</button><button type="button" class="vbtn x" data-vi="${i}" data-to="">취소</button>`
+    : st==='완료'
+    ? `<span class="vtag done">✓ 검증완료</span><button type="button" class="vbtn x" data-vi="${i}" data-to="필요">다시 검증필요</button>`
+    : `<button type="button" class="vbtn" data-vi="${i}" data-to="필요">검증필요</button>`;
+}
+function memoHTML(t){
+  let h=esc(t||'');
+  h=h.replace(/\[(카톡|콜|문자|톡)([^\]]*)\]/g,(m,k,rest)=>`<span class="src ${k==='카톡'||k==='톡'?'kt':k==='문자'?'sms':''}">${k}${rest}</span>`);
+  h=h.replace(/(※[^\n]*)/g,'<span class="warn">$1</span>');
+  return h;
+}
+function renderPreview(){
+  if($('pv').hidden) return;
+  const g=id=>$(id).value, sc=ITEMS.map((_,i)=>num($('s'+i).value));
+  const tot=sc.filter(v=>v!==null).reduce((a,b)=>a+b,0);
+  const m=MGRS.find(x=>x.empno===g('f-mgr'));
+  $('pvTitle').textContent = `미리보기 — ${m?.name||editRec?.mgr||'지점장 미선택'} → ${g('f-ptn')||'파트너스'}`;
+  $('pvMeta').textContent = `${g('f-month')||'차월?'} · ${m?.center||g('f-center')||''} · 파트너스코드 ${g('f-ptnCode')||'-'} · 평가일 ${g('f-edate')||'-'} · 합계 ${Math.round(tot*10)/10} / ${MAXP}`
+    + (formV.filter(v=>v==='필요').length ? ` · 검증필요 ${formV.filter(v=>v==='필요').length}개` : '');
+  const onlyNeed=$('pvOnlyNeed').checked, onlyLow=$('pvOnlyLow').checked;
+  let html='';
+  ITEMS.forEach((it,i)=>{
+    const st=formV[i]||'', v=sc[i];
+    if(onlyNeed && st!=='필요') return;
+    if(onlyLow && v!==null && v>=it.p) return;
+    const memo=$('m'+i).value;
+    html+=`<div class="pv-item ${st==='필요'?'v-need':st==='완료'?'v-done':''}" data-go="${i}">
+      <div class="pv-top"><span class="pv-no">${i+1}. ${esc(SHORT[i])}</span><span class="pv-cat">${esc(CATS[catOf[i]].name.replace(/\n/g,' '))}</span>
+        <span class="pv-sc ${v!==null&&v>=it.p?'full':''}">${v===null?'미입력':v} <small>/ ${it.p}</small></span></div>
+      <div class="pv-q">${esc(it.t)}</div>
+      <div class="pv-memo">${memo?memoHTML(memo):'<span class="pv-empty">메모 없음</span>'}</div>
+      <div class="vbox">${vBtns(i,st)}</div></div>`;
+  });
+  $('pvBody').innerHTML = html || '<div class="pv-empty">조건에 맞는 항목이 없습니다.</div>';
+}
+function setPv(open){
+  $('pv').hidden=!open; document.body.classList.toggle('pv-open', open);
+  $('btnPv').textContent = open ? '미리보기 닫기' : '미리보기';
+  const h=$('appHeader').getBoundingClientRect().height; document.documentElement.style.setProperty('--hh', (h||56)+'px');
+  renderPreview();
+}
+$('btnPv').onclick=()=>setPv($('pv').hidden);
+$('pvClose').onclick=()=>setPv(false);
+['pvOnlyNeed','pvOnlyLow'].forEach(id=>$(id).addEventListener('change', renderPreview));
+$('pvBody').addEventListener('click', e=>{
+  const vb=e.target.closest('[data-vi]');
+  if(vb){ formV[+vb.dataset.vi]=vb.dataset.to; dirty=true; renderV(); return; }
+  const it=e.target.closest('[data-go]'); if(!it) return;
+  const tr=$('frow'+it.dataset.go); tr.scrollIntoView({behavior:'smooth', block:'center'});
+  tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash');
+});
+let pvT; const pvLater=()=>{ clearTimeout(pvT); pvT=setTimeout(renderPreview,150); };
+['f-month','f-center','f-mgr','f-ptnCode','f-ptn','f-edate'].forEach(id=>$(id).addEventListener('input', pvLater));
+function fitMemo(el){ el.style.height='auto'; el.style.height=Math.min(Math.max(el.scrollHeight+2,52),260)+'px'; }
 function mgrOptions(selEmp){
   const c=$('f-center').value, mo=$('f-month').value, ed=$('f-edate').value||today(), want=parseInt(mo);
   const mm = m => mgrMonth(m, ed);
@@ -564,6 +662,7 @@ function fillForm(r){
   $('f-calldt').value=(r?.calldt||'').replace(' ','T'); $('f-evr').value=r ? r.evr : (ME?.name||'');
   for(let i=0;i<N;i++){ $('s'+i).value = r && r.s[i]!==null && r.s[i]!==undefined ? r.s[i] : ''; $('m'+i).value = r?.m[i]||''; }
   formV = r ? [...(r.v||[])] : []; while(formV.length<N) formV.push(''); renderV();
+  requestAnimationFrame(()=>{ for(let i=0;i<N;i++) fitMemo($('m'+i)); });
   $('formTitle').textContent = r ? `평가 수정 — ${r.mgr} (${r.month||'차월 미입력'})` : '새 평가 입력';
   $('btnDelete').hidden = !r;
   onScore(); dirty=false;
