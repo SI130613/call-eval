@@ -138,6 +138,8 @@
   .pv-memo .src.sms{background:#E2F3E5;color:#1D6B30}
   .pv-memo .warn{background:#FFE0E0;color:#A40000;font-weight:700;border-radius:3px;padding:0 3px}
   .pv-empty{color:var(--muted);font-size:13px}
+  #f-type.coach,.tag.coach{background:#EDE7F6;color:#4527A0;border-color:#9575CD;font-weight:700}
+  tr.coachrow td{background:#FAF8FD}
   .pv-note{display:block;width:100%;margin-top:6px;border:1px dashed #B0B8D4;border-radius:6px;background:#FFFFFFCC;padding:6px 8px;font:inherit;font-size:13px;line-height:1.55;resize:vertical;min-height:34px;color:#333}
   .pv-note:focus{outline:2px solid #5C6BC0;border-style:solid;background:#fff}
   .pv-note.has{border-style:solid;border-color:#7E57C2;background:#F6F1FF}
@@ -239,6 +241,7 @@
         <label class="f">파트너스명<input id="f-ptn" style="width:110px"></label>
         <label class="f">통화일시<input id="f-calldt" type="datetime-local"></label>
         <label class="f">평가자<input id="f-evr" readonly style="width:90px"></label>
+        <label class="f">평가 구분<select id="f-type"><option value="">정식 평가</option><option value="코칭">코칭용 (통계 제외)</option></select></label>
       </div>
       <div class="row" style="margin-top:8px">
         <label class="f" style="flex:1">총평<textarea id="f-cm" placeholder="이 지점장 콜 전반에 대한 총평 (성향·강점·보완점 등)"></textarea></label>
@@ -272,6 +275,7 @@
         <label class="f">센터<select id="l-center"></select></label>
         <label class="f">검색<input id="l-q" placeholder="지점장·파트너스·평가자" style="width:200px"></label>
         <label class="f">검증<select id="l-v"><option value="">전체</option><option value="need">검증필요만</option><option value="done">검증완료 있음</option></select></label>
+        <label class="f">구분<select id="l-t"><option value="">전체</option><option value="정식">정식 평가만</option><option value="코칭">코칭용만</option></select></label>
         <div class="sp"></div>
         <button class="btn ghost" id="btnCsv">목록 엑셀(CSV)</button>
         <button class="btn ghost" id="btnXlsAll">평가시트로 다운로드</button>
@@ -438,10 +442,10 @@ function totalOf(r){ const s=(r.s||[]).map(num).filter(v=>v!==null); return s.le
 const fmt1 = v => v===null||v===undefined||isNaN(v) ? '-' : (Math.round(v*10)/10).toString();
 const avg = a => { const v=a.filter(x=>x!==null&&x!==undefined&&!isNaN(x)); return v.length? v.reduce((p,c)=>p+c,0)/v.length : null; };
 const callFmt = s => (s||'').replace('T',' ');
-function normalize(r){ const v=(r.v||[]).slice(0,N); while(v.length<N) v.push(''); const n=(r.n||[]).slice(0,N).map(x=>x??''); while(n.length<N) n.push(''); return {...r, s:(r.s||[]).map(num), m:(r.m||[]).map(x=>x??''), v, n, cm:r.cm||'', total: totalOf(r)}; }
+function normalize(r){ const v=(r.v||[]).slice(0,N); while(v.length<N) v.push(''); const n=(r.n||[]).slice(0,N).map(x=>x??''); while(n.length<N) n.push(''); return {...r, s:(r.s||[]).map(num), m:(r.m||[]).map(x=>x??''), v, n, cm:r.cm||'', type:r.type||'', total: totalOf(r)}; }
 const vNeed = r => (r.v||[]).filter(x=>x==='필요').length;
 const vDone = r => (r.v||[]).filter(x=>x==='완료').length;
-function label(r){ return `${r.edate||''} · ${r.mgr}${r.month?` (${r.month})`:''}${r.ptn?` - ${r.ptn}`:''}${r.total!==null?` · ${r.total}점`:''}`; }
+function label(r){ return `${r.edate||''} · ${r.mgr}${r.month?` (${r.month})`:''}${r.ptn?` - ${r.ptn}`:''}${r.total!==null?` · ${r.total}점`:''}${r.type==='코칭'?' [코칭용]':''}`; }
 function sorted(arr){ return [...arr].sort((a,b)=> (b.edate||'').localeCompare(a.edate||'') || (b.updated||'').localeCompare(a.updated||'')); }
 const isSuper = () => ME?.role==='최고관리자';
 
@@ -631,6 +635,8 @@ $('pvBody').addEventListener('input', e=>{
   const t=e.target.closest('.pv-note'); if(!t) return;
   formN[+t.dataset.ni]=t.value; t.classList.toggle('has', !!t.value.trim()); fitNote(t); dirty=true;
 });
+function typeLook(){ $('f-type').classList.toggle('coach', $('f-type').value==='코칭'); }
+$('f-type').addEventListener('change', ()=>{ dirty=true; typeLook(); });
 $('f-cm').addEventListener('input', ()=>{ dirty=true; fitCm(); pvLater(); });
 function fitCm(){ const el=$('f-cm'); el.style.height='auto'; el.style.height=Math.min(Math.max(el.scrollHeight+2,58),300)+'px'; }
 let pvT; const pvLater=()=>{ clearTimeout(pvT); pvT=setTimeout(renderPreview,150); };
@@ -687,6 +693,7 @@ function fillForm(r){
   for(let i=0;i<N;i++){ $('s'+i).value = r && r.s[i]!==null && r.s[i]!==undefined ? r.s[i] : ''; $('m'+i).value = r?.m[i]||''; }
   formN = r ? [...(r.n||[])] : []; while(formN.length<N) formN.push('');
   $('f-cm').value = r?.cm||''; requestAnimationFrame(fitCm);
+  $('f-type').value = r?.type||''; typeLook();
   formV = r ? [...(r.v||[])] : []; while(formV.length<N) formV.push(''); renderV();
   requestAnimationFrame(()=>{ for(let i=0;i<N;i++) fitMemo($('m'+i)); });
   $('formTitle').textContent = r ? `평가 수정 — ${r.mgr} (${r.month||'차월 미입력'})` : '새 평가 입력';
@@ -699,7 +706,7 @@ function readForm(){
   return { id:editing||'', center:m.center||g('f-center'), month:g('f-month'), mgrEmp:e, mgr:m.name||'', ptnCode:g('f-ptnCode'), ptn:g('f-ptn'),
     calldt:g('f-calldt').replace('T',' '), edate:g('f-edate'),
     s:ITEMS.map((_,i)=>num($('s'+i).value)), m:ITEMS.map((_,i)=>$('m'+i).value.trim()), v:[...formV],
-    n:formN.map(x=>(x||'').trim()), cm:$('f-cm').value.trim() };
+    n:formN.map(x=>(x||'').trim()), cm:$('f-cm').value.trim(), type:$('f-type').value };
 }
 function mergeRec(rec){ const n=normalize(rec); const i=DATA.findIndex(r=>r.id===n.id); if(i>=0) DATA[i]=n; else DATA.push(n); return n; }
 $('btnVAll').onclick=()=>{ formV=formV.map(v=>v==='필요'?'완료':v); renderV(); dirty=true; toast('검증필요 항목을 모두 검증완료로 바꿨어요. 저장을 눌러야 반영됩니다'); };
@@ -725,18 +732,18 @@ window.addEventListener('beforeunload', e=>{ if(dirty){ e.preventDefault(); e.re
 
 /* ================= 목록 ================= */
 function listFiltered(){
-  const m=$('l-month').value, c=$('l-center').value, q=$('l-q').value.trim(), vf=$('l-v').value;
+  const m=$('l-month').value, c=$('l-center').value, q=$('l-q').value.trim(), vf=$('l-v').value, tf=$('l-t').value;
   return sorted(DATA).filter(r=>(!m||r.month===m)&&(!c||r.center===c)&&(!q||[r.mgr,r.ptn,r.ptnCode,r.evr].some(x=>(x||'').includes(q)))
-    &&(!vf||(vf==='need'?vNeed(r)>0:vDone(r)>0)));
+    &&(!vf||(vf==='need'?vNeed(r)>0:vDone(r)>0))&&(!tf||(tf==='코칭')===(r.type==='코칭')));
 }
-['l-month','l-center','l-q','l-v'].forEach(id=>$(id).addEventListener('input', renderList));
+['l-month','l-center','l-q','l-v','l-t'].forEach(id=>$(id).addEventListener('input', renderList));
 const gradeCls = t => t===null?'':t>=90?'g-hi':t<60?'g-lo':'';
 function renderList(){
   const rows=listFiltered();
-  $('listBody').innerHTML = rows.length ? rows.map(r=>`<tr class="${vNeed(r)?'vpink':''}">
+  $('listBody').innerHTML = rows.length ? rows.map(r=>`<tr class="${vNeed(r)?'vpink':r.type==='코칭'?'coachrow':''}">
     <td class="num">${esc(r.edate)}</td><td class="num">${esc(r.center)}</td>
     <td class="num">${r.month?`<span class="tag ${r.month==='2차월'?'t2':'t3'}">${esc(r.month)}</span>`:'-'}</td>
-    <td><b>${esc(r.mgr)}</b> <span class="hint">${esc(r.mgrEmp)}</span></td><td class="num">${esc(r.ptnCode)}</td><td>${esc(r.ptn)}</td><td class="num">${esc(r.evr)}</td>
+    <td><b>${esc(r.mgr)}</b> <span class="hint">${esc(r.mgrEmp)}</span>${r.type==='코칭'?' <span class="tag coach">코칭용</span>':''}</td><td class="num">${esc(r.ptnCode)}</td><td>${esc(r.ptn)}</td><td class="num">${esc(r.evr)}</td>
     <td class="num ${gradeCls(r.total)}">${r.total??'-'}</td>
     <td class="num">${vNeed(r)?`<span class="vtag need">검증필요 ${vNeed(r)}</span>`:vDone(r)?`<span class="vtag done">✓ 완료 ${vDone(r)}</span>`:''}</td>
     <td class="num" style="white-space:nowrap"><button class="btn sm ghost" data-a="rep" data-id="${r.id}">리포트</button>
@@ -769,10 +776,10 @@ $('r-sel').addEventListener('change', renderReport);
 const curReport = () => DATA.find(x=>x.id===$('r-sel').value);
 function renderReport(){ const r=curReport(); $('reportBox').innerHTML = r ? reportHTML(r) : '<div class="card empty">평가를 선택하세요.</div>'; }
 function reportHTML(r){
-  const peers = DATA.filter(x=>x.month && x.month===r.month);
+  const peers = DATA.filter(x=>x.month && x.month===r.month && x.type!=='코칭');
   const itemAvg = i => avg(peers.map(x=>x.s[i]));
   const ranked = peers.filter(x=>x.total!==null);
-  const rank = r.total!==null && r.month ? ranked.filter(x=>x.total>r.total).length+1 : null;
+  const rank = r.total!==null && r.month && r.type!=='코칭' ? ranked.filter(x=>x.total>r.total).length+1 : null;
   let rows='';
   ITEMS.forEach((it,i)=>{
     const ci=catOf[i], first=i===0||catOf[i-1]!==ci;
@@ -782,7 +789,7 @@ function reportHTML(r){
       <td class="score">${r.s[i]??''}</td><td class="avg">${r.month?fmt1(itemAvg(i)):'-'}</td><td class="memo">${esc(r.m[i])}</td></tr>`;
   });
   return `<div class="report">
-    <h3>2~3차월 콜 평가표</h3>
+    <h3>2~3차월 콜 평가표${r.type==='코칭'?' <span class="tag coach" style="font-size:13px;vertical-align:middle">코칭용 · 통계 제외</span>':''}</h3>
     <table class="info"><tr><th>센터</th><th>차월</th><th>지점장</th><th>지점장 사번</th><th>파트너스코드</th><th>파트너스명</th><th>통화일시</th><th>평가자</th><th>평가일</th></tr>
       <tr><td>${esc(r.center)}</td><td style="color:var(--red)">${esc(r.month)}</td><td>${esc(r.mgr)}</td><td>${esc(r.mgrEmp)}</td><td>${esc(r.ptnCode)}</td><td>${esc(r.ptn)}</td>
       <td>${esc(callFmt(r.calldt))}</td><td>${esc(r.evr)}</td><td>${esc(r.edate)}</td></tr></table>
@@ -805,7 +812,7 @@ $('btnEditFromReport').onclick=()=>{ const r=curReport(); if(!r) return; if(dirt
 function renderResult(){ $('resultBox').innerHTML = resultHTML(); }
 function resultHTML(){
   const fm=$('s-month').value, fc=$('s-center').value;
-  const valid = DATA.filter(r=>MONTHS.includes(r.month));
+  const valid = DATA.filter(r=>MONTHS.includes(r.month) && r.type!=='코칭');
   const sel = valid.filter(r=>(!fm||r.month===fm)&&(!fc||r.center===fc))
     .sort((a,b)=>CENTERS.indexOf(a.center)-CENTERS.indexOf(b.center)||a.month.localeCompare(b.month)||(a.mgr||'').localeCompare(b.mgr||''));
   const tots = a => a.map(r=>r.total).filter(v=>v!==null);
@@ -814,7 +821,8 @@ function resultHTML(){
       <div class="s">${t.length}명 · 최고 ${t.length?Math.max(...t):'-'} · 최저 ${t.length?Math.min(...t):'-'} · 90점↑ ${t.filter(v=>v>=90).length}명</div></div>`; };
   const filterName = `${fm||'전체 차월'} · ${fc||'전체 센터'}`;
   let h = `<div class="stats">${statCard('2차월 평균',valid.filter(r=>r.month==='2차월'))}${statCard('3차월 평균',valid.filter(r=>r.month==='3차월'))}
-    ${statCard('전체 평균',valid)}${statCard('선택: '+filterName, sel)}</div>`;
+    ${statCard('전체 평균',valid)}${statCard('선택: '+filterName, sel)}</div>`
+    + (DATA.some(r=>r.type==='코칭') ? `<div class="hint" style="margin:-6px 0 12px">※ 코칭용 평가 ${DATA.filter(r=>r.type==='코칭').length}건은 통계에서 제외했습니다.</div>` : '');
   h += `<div class="card"><h2>센터별 · 차월별 통계</h2><div class="matrix"><table><thead><tr><th>센터</th><th>2차월 인원</th><th>2차월 평균</th><th>3차월 인원</th><th>3차월 평균</th><th>합계 인원</th><th>합계 평균</th></tr></thead><tbody>`;
   CENTERS.forEach(c=>{
     const a2=tots(valid.filter(r=>r.center===c&&r.month==='2차월')), a3=tots(valid.filter(r=>r.center===c&&r.month==='3차월')), all=a2.concat(a3);
