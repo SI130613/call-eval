@@ -1138,14 +1138,14 @@ function renderAdmin(){
       &&(!qc||m.center===qc)
       &&(!qh||(m.hire||'').slice(0,7)===qh); });
   const k=MSORT.key, d=MSORT.dir, mv=m=>mgrMonth(m, today());
-  const cIdx=c=>{ const i=CENTERS.indexOf(c||''); return i<0?99:i; };   // 기본 정렬: 센터(강남→대경 순) > 차월 > 이름
+  const cIdx=c=>{ const i=CENTERS.indexOf(c||''); return i<0?99:i; };   // 기본 정렬: 차월 > 센터(강남→대경 순) > 이름
   const val={center:m=>m.center||'', name:m=>m.name||'', empno:m=>m.empno||'', hire:m=>m.hire||'', note:m=>m.note||'', month:m=>mv(m)};
   const ms=filtered.sort(k ? (a,b)=>{ let x=val[k](a), y=val[k](b);
-      if(k==='month'){ x=x??999; y=y??999; return (x-y)*d || a.name.localeCompare(b.name); }
+      if(k==='month'){ x=x??999; y=y??999; return (x-y)*d || cIdx(a.center)-cIdx(b.center) || a.name.localeCompare(b.name); }
       if(k==='center') return (cIdx(x)-cIdx(y)||x.localeCompare(y))*d || (mv(a)??99)-(mv(b)??99) || a.name.localeCompare(b.name);
       if(k==='hire'){ if(!x&&y) return 1; if(x&&!y) return -1; }
       return String(x).localeCompare(String(y),'ko',{numeric:true})*d || a.name.localeCompare(b.name); }
-    : (a,b)=>cIdx(a.center)-cIdx(b.center)||(a.center||'').localeCompare(b.center||'')||(mv(a)??99)-(mv(b)??99)||a.name.localeCompare(b.name));
+    : (a,b)=>(mv(a)??99)-(mv(b)??99)||cIdx(a.center)-cIdx(b.center)||(a.center||'').localeCompare(b.center||'')||a.name.localeCompare(b.name));
   document.querySelectorAll('#mgrHead th[data-ms]').forEach(th=>{ th.querySelector('.ar')?.remove();
     if(th.dataset.ms===k) th.insertAdjacentHTML('beforeend',`<span class="ar">${d>0?'▲':'▼'}</span>`); });
   $('mq-count').textContent = filtered.length!==MGRS.length ? `검색 결과 ${filtered.length}명 / 전체 ${MGRS.length}명` : '';
