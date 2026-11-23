@@ -140,6 +140,9 @@
   .pv-empty{color:var(--muted);font-size:13px}
   #f-type.coach,.tag.coach{background:#EDE7F6;color:#4527A0;border-color:#9575CD;font-weight:700}
   tr.coachrow td{background:#FAF8FD}
+  #mgrHead th[data-ms]{cursor:pointer;user-select:none;white-space:nowrap}
+  #mgrHead th[data-ms]:hover{text-decoration:underline}
+  #mgrHead th .ar{font-size:10px;margin-left:3px;opacity:.85}
   .pv-note{display:block;width:100%;margin-top:6px;border:1px dashed #B0B8D4;border-radius:6px;background:#FFFFFFCC;padding:6px 8px;font:inherit;font-size:13px;line-height:1.55;resize:vertical;min-height:34px;color:#333}
   .pv-note:focus{outline:2px solid #5C6BC0;border-style:solid;background:#fff}
   .pv-note.has{border-style:solid;border-color:#7E57C2;background:#F6F1FF}
@@ -326,7 +329,15 @@
         <button class="btn sm ghost" id="btnMgrDown">현재 명단 · 양식 다운로드</button>
         <button class="btn sm" id="btnMgrUp">엑셀 업로드 (명단 교체)</button></h2>
       <div class="hint" style="margin-bottom:10px">평가는 이 명단에 있는 지점장만 할 수 있습니다. <b>현재 차월은 입사일로 매일 자동 계산</b>됩니다(한국시간, 입사월 = 1차월). 엑셀 첫 줄 제목: <b>사번 · 이름 · 센터 · 입사일</b>, 비고(선택). 업로드하면 명단 전체가 새 파일 내용으로 바뀝니다. 이미 입력된 평가는 지워지지 않습니다.</div>
-      <div class="scroll"><table class="list"><thead><tr><th>센터</th><th>이름</th><th>사번</th><th>입사일</th><th>현재 차월 <span id="mgrToday" style="font-weight:400"></span></th><th>비고</th><th></th></tr></thead><tbody id="mgrBody"></tbody></table></div>
+      <div class="row" style="margin-bottom:10px">
+        <label class="f">이름<input id="mq-name" placeholder="이름 또는 사번" style="width:140px"></label>
+        <label class="f">차월<select id="mq-month"><option value="">전체</option></select></label>
+        <label class="f">센터<select id="mq-center"><option value="">전체</option></select></label>
+        <label class="f">입사월<input id="mq-hire" type="month"></label>
+        <button class="btn sm ghost" id="mq-reset" style="align-self:flex-end">검색 초기화</button>
+        <span class="hint" id="mq-count" style="align-self:flex-end"></span>
+      </div>
+      <div class="scroll"><table class="list"><thead id="mgrHead"><tr><th data-ms="center">센터</th><th data-ms="name">이름</th><th data-ms="empno">사번</th><th data-ms="hire">입사일</th><th data-ms="month">현재 차월 <span id="mgrToday" style="font-weight:400"></span></th><th data-ms="note">비고</th><th></th></tr></thead><tbody id="mgrBody"></tbody></table></div>
     </div>
     <div class="card">
       <h2>관리자(평가자) 명단 <span class="tag t3" id="admCount"></span><span class="sp"></span>
@@ -1103,17 +1114,46 @@ $('fileEval').onchange=e=>{
 };
 
 /* ---- 명단 관리 (최고관리자) ---- */
+const MSORT={key:'', dir:1};
+$('mgrHead').addEventListener('click', e=>{ const th=e.target.closest('th[data-ms]'); if(!th) return;
+  const k=th.dataset.ms; if(MSORT.key===k){ if(MSORT.dir>0) MSORT.dir=-1; else { MSORT.key=''; MSORT.dir=1; } } else { MSORT.key=k; MSORT.dir=1; }
+  renderAdmin(); });
+['mq-name','mq-month','mq-center','mq-hire'].forEach(id=>$(id).addEventListener('input', ()=>renderAdmin()));
+$('mq-reset').onclick=()=>{ ['mq-name','mq-month','mq-center','mq-hire'].forEach(id=>$(id).value=''); MSORT.key=''; MSORT.dir=1; renderAdmin(); };
 function renderAdmin(){
   $('mgrCount').textContent=`${MGRS.length}명`; $('admCount').textContent=`${ADMINS.length}명`;
   $('mgrToday').textContent=`(${today()} 기준)`;
-  const ms=[...MGRS].sort((a,b)=>(mgrMonth(a)??99)-(mgrMonth(b)??99)||(a.center||'').localeCompare(b.center||'')||a.name.localeCompare(b.name));
+  // 검색 옵션 채우기 (현재 값 유지)
+  const curM=$('mq-month').value, curC=$('mq-center').value;
+  const months=[...new Set(MGRS.map(m=>mgrMonth(m, today())).filter(n=>n!==null&&n!==undefined))].sort((a,b)=>a-b);
+  $('mq-month').innerHTML='<option value="">전체</option>'+months.map(n=>`<option value="${n}">${monthLabel(n)}</option>`).join('')+(MGRS.some(m=>mgrMonth(m, today())===null)?'<option value="none">미등록</option>':'');
+  $('mq-month').value=[...$('mq-month').options].some(o=>o.value===curM)?curM:'';
+  const centers=[...new Set(CENTERS.concat(MGRS.map(m=>m.center).filter(Boolean)))];
+  $('mq-center').innerHTML='<option value="">전체</option>'+centers.map(c=>`<option>${esc(c)}</option>`).join('');
+  $('mq-center').value=centers.includes(curC)?curC:'';
+  const qn=$('mq-name').value.trim(), qm=$('mq-month').value, qc=$('mq-center').value, qh=$('mq-hire').value;
+  const filtered=MGRS.filter(m=>{ const n=mgrMonth(m, today());
+    return (!qn||(m.name||'').includes(qn)||(m.empno||'').includes(qn))
+      &&(!qm||(qm==='none'?n===null:n===Number(qm)))
+      &&(!qc||m.center===qc)
+      &&(!qh||(m.hire||'').slice(0,7)===qh); });
+  const k=MSORT.key, d=MSORT.dir, mv=m=>mgrMonth(m, today());
+  const val={center:m=>m.center||'', name:m=>m.name||'', empno:m=>m.empno||'', hire:m=>m.hire||'', note:m=>m.note||'', month:m=>mv(m)};
+  const ms=filtered.sort(k ? (a,b)=>{ let x=val[k](a), y=val[k](b);
+      if(k==='month'){ x=x??999; y=y??999; return (x-y)*d || a.name.localeCompare(b.name); }
+      if(k==='hire'){ if(!x&&y) return 1; if(x&&!y) return -1; }
+      return String(x).localeCompare(String(y),'ko',{numeric:true})*d || a.name.localeCompare(b.name); }
+    : (a,b)=>(mv(a)??99)-(mv(b)??99)||(a.center||'').localeCompare(b.center||'')||a.name.localeCompare(b.name));
+  document.querySelectorAll('#mgrHead th[data-ms]').forEach(th=>{ th.querySelector('.ar')?.remove();
+    if(th.dataset.ms===k) th.insertAdjacentHTML('beforeend',`<span class="ar">${d>0?'▲':'▼'}</span>`); });
+  $('mq-count').textContent = filtered.length!==MGRS.length ? `검색 결과 ${filtered.length}명 / 전체 ${MGRS.length}명` : '';
   $('mgrBody').innerHTML = ms.length ? ms.map(m=>{ const n=mgrMonth(m, today());
     const tag = n===2?'t2':n===3?'t3':'tskip';
     return `<tr><td class="num">${esc(m.center)}</td><td><b>${esc(m.name)}</b></td><td class="num">${esc(m.empno)}</td>
     <td class="num">${m.hire?esc(m.hire):'<span class="hint">미등록</span>'}</td>
     <td class="num"><span class="tag ${tag}">${monthLabel(n)}</span>${m.hire?'':' <span class="hint">(수동)</span>'}</td><td>${esc(m.note)}</td>
     <td class="num" style="white-space:nowrap"><button class="btn sm ghost" data-medit="${esc(m.empno)}">수정</button> <button class="btn sm warn" data-mdel="${esc(m.empno)}">삭제</button></td></tr>`; }).join('')
-    : '<tr><td colspan="7" class="empty">지점장 명단이 없습니다. [＋ 지점장 추가] 또는 엑셀로 올려 주세요.</td></tr>';
+    : `<tr><td colspan="7" class="empty">${MGRS.length?'검색 조건에 맞는 지점장이 없습니다.':'지점장 명단이 없습니다. [＋ 지점장 추가] 또는 엑셀로 올려 주세요.'}</td></tr>`;
   $('admBody').innerHTML = ADMINS.map(a=>`<tr><td><b>${esc(a.name)}</b></td><td class="num">${esc(a.empno)}</td><td class="num">${esc(a.center)}</td>
     <td class="num">${a.role==='최고관리자'?'<span class="tag t3">최고관리자</span>':'관리자'}</td>
     <td class="num">${a.pwStatus==='초기'?'<span class="tag terr">초기(aa1234)</span>':'<span class="tag tok">변경됨</span>'}</td>
