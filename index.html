@@ -297,7 +297,8 @@
         <label class="f">차월<select id="l-month"><option value="">전체</option><option>2차월</option><option>3차월</option></select></label>
         <label class="f">센터<select id="l-center"></select></label>
         <label class="f">검색<input id="l-q" placeholder="지점장·파트너스·코드·평가자" style="width:200px"></label>
-        <label class="f">검토·검증<select id="l-v"><option value="">전체</option><option value="need">검증필요만</option><option value="done">검증완료 있음</option><option value="rv">검토완료</option><option value="norv">미검토</option></select></label>
+        <label class="f">검증<select id="l-v"><option value="">전체</option><option value="need">검증필요만</option><option value="done">검증완료 있음</option></select></label>
+        <label class="f">검토<select id="l-r"><option value="">전체</option><option value="rv">검토완료</option><option value="norv">미검토</option></select></label>
         <label class="f">구분<select id="l-t"><option value="">전체</option><option value="정식">정식 평가만</option><option value="코칭">코칭용만</option></select></label>
         <div class="sp"></div>
         <button class="btn ghost" id="btnCsv">목록 엑셀(CSV)</button>
@@ -308,7 +309,7 @@
     </div>
     <div class="card" style="padding:0;overflow:auto">
       <table class="list">
-        <thead id="listHead"><tr><th data-ls="edate">평가일</th><th data-ls="center">센터</th><th data-ls="month">차월</th><th data-ls="mgr">지점장</th><th data-ls="ptnCode">파트너스코드</th><th data-ls="ptn">파트너스명</th><th data-ls="evr">평가자</th><th data-ls="total">합계</th><th data-ls="state">검토·검증</th><th></th></tr></thead>
+        <thead id="listHead"><tr><th data-ls="edate">평가일</th><th data-ls="center">센터</th><th data-ls="month">차월</th><th data-ls="mgr">지점장</th><th data-ls="ptnCode">파트너스코드</th><th data-ls="ptn">파트너스명</th><th data-ls="evr">평가자</th><th data-ls="total">합계</th><th data-ls="vstate">검증</th><th data-ls="rv">검토</th><th></th></tr></thead>
         <tbody id="listBody"></tbody>
       </table>
     </div>
@@ -778,7 +779,9 @@ function doSave(rv){
   run(async()=>{
     const r = await api('save',{rec});
     if(!r.ok) throw new Error('저장 실패: '+r.error);
-    mergeRec(r.rec); toast(rv===true?'검토완료로 저장했습니다':rv===false?'검토완료를 취소했습니다':editing?'수정했습니다':'저장했습니다'); fillForm(null); refreshAll();
+    const saved=mergeRec(r.rec); toast(rv===true?'검토완료로 저장했습니다':rv===false?'검토완료를 취소했습니다':editing?'수정했습니다':'저장했습니다');
+    const y=window.scrollY, pvOpen=!$('pv').hidden;
+    fillForm(saved); refreshAll(); window.scrollTo(0,y); if(pvOpen) renderPreview();   // 저장 후에도 같은 평가 화면 유지
   });
 }
 $('btnDelete').onclick=()=>{
@@ -791,11 +794,11 @@ window.addEventListener('beforeunload', e=>{ if(dirty){ e.preventDefault(); e.re
 /* ================= 목록 ================= */
 const LSORT={key:'', dir:1};
 const lsVal={edate:r=>r.edate||'', center:r=>r.center||'', month:r=>r.month||'', mgr:r=>r.mgr||'', ptnCode:r=>r.ptnCode||'', ptn:r=>r.ptn||'', evr:r=>r.evr||'',
-  total:r=>r.total, state:r=>(vNeed(r)?0:r.rv?2:1)};
+  total:r=>r.total, vstate:r=>(vNeed(r)?0:vDone(r)?1:2), rv:r=>(r.rv?1:0)};
 function lsort(rows){
   const k=LSORT.key, d=LSORT.dir; if(!k) return rows;
   return [...rows].sort((a,b)=>{ let x=lsVal[k](a), y=lsVal[k](b);
-    if(k==='total'||k==='state'){ x=x??-1; y=y??-1; return (x-y)*d || (b.edate||'').localeCompare(a.edate||''); }
+    if(k==='total'||k==='vstate'||k==='rv'){ x=x??-1; y=y??-1; return (x-y)*d || (b.edate||'').localeCompare(a.edate||''); }
     if(k==='center'){ const ci=c=>{ const i=CENTERS.indexOf(c); return i<0?99:i; }; return (ci(x)-ci(y))*d || (b.edate||'').localeCompare(a.edate||''); }
     return String(x).localeCompare(String(y),'ko',{numeric:true})*d || (b.edate||'').localeCompare(a.edate||''); });
 }
@@ -803,11 +806,11 @@ $('listHead').addEventListener('click', e=>{ const th=e.target.closest('th[data-
   const k=th.dataset.ls; if(LSORT.key===k){ if(LSORT.dir>0) LSORT.dir=-1; else { LSORT.key=''; LSORT.dir=1; } } else { LSORT.key=k; LSORT.dir=1; }
   renderList(); });
 function listFiltered(){
-  const m=$('l-month').value, c=$('l-center').value, q=$('l-q').value.trim(), vf=$('l-v').value, tf=$('l-t').value, ym=$('l-ym').value;
+  const m=$('l-month').value, c=$('l-center').value, q=$('l-q').value.trim(), vf=$('l-v').value, tf=$('l-t').value, ym=$('l-ym').value, rf=$('l-r').value;
   return sorted(DATA).filter(r=>(!m||r.month===m)&&(!c||r.center===c)&&(!q||[r.mgr,r.ptn,r.ptnCode,r.ptnOld,r.evr].some(x=>(x||'').includes(q)))
-    &&(!vf||(vf==='need'?vNeed(r)>0:vf==='done'?vDone(r)>0:vf==='rv'?!!r.rv:!r.rv))&&(!tf||(tf==='코칭')===(r.type==='코칭'))&&(!ym||(r.edate||'').slice(0,7)===ym));
+    &&(!vf||(vf==='need'?vNeed(r)>0:vDone(r)>0))&&(!rf||(rf==='rv'?!!r.rv:!r.rv))&&(!tf||(tf==='코칭')===(r.type==='코칭'))&&(!ym||(r.edate||'').slice(0,7)===ym));
 }
-['l-ym','l-month','l-center','l-q','l-v','l-t'].forEach(id=>$(id).addEventListener('input', renderList));
+['l-ym','l-month','l-center','l-q','l-v','l-r','l-t'].forEach(id=>$(id).addEventListener('input', renderList));
 const gradeCls = t => t===null?'':t>=90?'g-hi':t<60?'g-lo':'';
 function ymOptions(){
   const sel=$('l-ym'), cur=sel.value;
@@ -825,11 +828,11 @@ function renderList(){
     <td class="num">${r.month?`<span class="tag ${r.month==='2차월'?'t2':'t3'}">${esc(r.month)}</span>`:'-'}</td>
     <td><b>${esc(r.mgr)}</b> <span class="hint">${esc(r.mgrEmp)}</span>${r.type==='코칭'?' <span class="tag coach">코칭용</span>':''}</td><td class="num">${esc(r.ptnCode)}${r.ptnOld?`<div class="hint">구 ${esc(r.ptnOld)}</div>`:''}</td><td>${esc(r.ptn)}</td><td class="num">${esc(r.evr)}</td>
     <td class="num ${gradeCls(r.total)}">${r.total??'-'}</td>
-    <td class="num" style="white-space:nowrap">${r.rv?`<span class="vtag rv" title="${esc(r.rv)}">✓ 검토완료</span>`:'<span class="vtag norv">미검토</span>'}
-      ${vNeed(r)?` <span class="vtag need">검증필요 ${vNeed(r)}</span>`:vDone(r)?` <span class="vtag done">검증완료 ${vDone(r)}</span>`:''}</td>
+    <td class="num" style="white-space:nowrap">${vNeed(r)?`<span class="vtag need">검증필요 ${vNeed(r)}</span>`:vDone(r)?`<span class="vtag done">✓ 완료 ${vDone(r)}</span>`:''}</td>
+    <td class="num" style="white-space:nowrap">${r.rv?`<span class="vtag rv" title="${esc(r.rv)}">✓ 검토완료</span>`:'<span class="vtag norv">미검토</span>'}</td>
     <td class="num" style="white-space:nowrap"><button class="btn sm ghost" data-a="rep" data-id="${r.id}">리포트</button>
       <button class="btn sm ghost" data-a="edit" data-id="${r.id}">수정</button></td></tr>`).join('')
-    : `<tr><td colspan="10" class="empty">평가가 없습니다. '평가 입력'에서 추가하세요.</td></tr>`;
+    : `<tr><td colspan="11" class="empty">평가가 없습니다. '평가 입력'에서 추가하세요.</td></tr>`;
 }
 $('listBody').addEventListener('click', e=>{
   const b=e.target.closest('button'); if(!b) return;
