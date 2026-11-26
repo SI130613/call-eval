@@ -109,6 +109,13 @@
   .vtag{font-size:11px;font-weight:800;border-radius:10px;padding:2px 8px}
   .vtag.need{background:#E91E63;color:#fff}
   .vtag.done{background:#fff;color:#C2185B;border:1px solid #F48FB1}
+  .vtag.rv{background:#E3F4E6;color:#1B6B2F;border:1px solid #81C784}
+  .vtag.norv{background:#F1F2F6;color:#8A90A2;border:1px dashed #C3C7D4}
+  .btn.rvb{background:#2E7D32;border-color:#2E7D32;color:#fff;font-weight:800}
+  .btn.rvb.cancel{background:#fff;color:#2E7D32}
+  #listHead th[data-ls]{cursor:pointer;user-select:none;white-space:nowrap}
+  #listHead th[data-ls]:hover{text-decoration:underline}
+  #listHead th .ar{font-size:10px;margin-left:3px;opacity:.85}
   #formBody tr.v-need td:not(.cat){background:#F8BBD0!important}
   #formBody tr.v-done td:not(.cat){background:#FDE7EF!important}
   .list tr.vpink td{background:#FCE4EC}
@@ -276,6 +283,8 @@
       <button class="btn pvb" id="btnPv">미리보기</button>
       <button class="btn ghost" id="btnReset">새로 작성</button>
       <button class="btn warn" id="btnDelete" hidden>삭제</button>
+      <span class="vtag rv" id="f-rv"></span>
+      <button class="btn rvb" id="btnReview" hidden>✓ 검토완료로 저장</button>
       <button class="btn gold" id="btnSave">저장</button>
     </div>
   </section>
@@ -288,7 +297,7 @@
         <label class="f">차월<select id="l-month"><option value="">전체</option><option>2차월</option><option>3차월</option></select></label>
         <label class="f">센터<select id="l-center"></select></label>
         <label class="f">검색<input id="l-q" placeholder="지점장·파트너스·코드·평가자" style="width:200px"></label>
-        <label class="f">검증<select id="l-v"><option value="">전체</option><option value="need">검증필요만</option><option value="done">검증완료 있음</option></select></label>
+        <label class="f">검토·검증<select id="l-v"><option value="">전체</option><option value="need">검증필요만</option><option value="done">검증완료 있음</option><option value="rv">검토완료</option><option value="norv">미검토</option></select></label>
         <label class="f">구분<select id="l-t"><option value="">전체</option><option value="정식">정식 평가만</option><option value="코칭">코칭용만</option></select></label>
         <div class="sp"></div>
         <button class="btn ghost" id="btnCsv">목록 엑셀(CSV)</button>
@@ -299,7 +308,7 @@
     </div>
     <div class="card" style="padding:0;overflow:auto">
       <table class="list">
-        <thead><tr><th>평가일</th><th>센터</th><th>차월</th><th>지점장</th><th>파트너스코드</th><th>파트너스명</th><th>평가자</th><th>합계</th><th>검증</th><th></th></tr></thead>
+        <thead id="listHead"><tr><th data-ls="edate">평가일</th><th data-ls="center">센터</th><th data-ls="month">차월</th><th data-ls="mgr">지점장</th><th data-ls="ptnCode">파트너스코드</th><th data-ls="ptn">파트너스명</th><th data-ls="evr">평가자</th><th data-ls="total">합계</th><th data-ls="state">검토·검증</th><th></th></tr></thead>
         <tbody id="listBody"></tbody>
       </table>
     </div>
@@ -464,7 +473,7 @@ function totalOf(r){ const s=(r.s||[]).map(num).filter(v=>v!==null); return s.le
 const fmt1 = v => v===null||v===undefined||isNaN(v) ? '-' : (Math.round(v*10)/10).toString();
 const avg = a => { const v=a.filter(x=>x!==null&&x!==undefined&&!isNaN(x)); return v.length? v.reduce((p,c)=>p+c,0)/v.length : null; };
 const callFmt = s => (s||'').replace('T',' ');
-function normalize(r){ const v=(r.v||[]).slice(0,N); while(v.length<N) v.push(''); const n=(r.n||[]).slice(0,N).map(x=>x??''); while(n.length<N) n.push(''); return {...r, s:(r.s||[]).map(num), m:(r.m||[]).map(x=>x??''), v, n, cm:r.cm||'', type:r.type||'', total: totalOf(r)}; }
+function normalize(r){ const v=(r.v||[]).slice(0,N); while(v.length<N) v.push(''); const n=(r.n||[]).slice(0,N).map(x=>x??''); while(n.length<N) n.push(''); return {...r, s:(r.s||[]).map(num), m:(r.m||[]).map(x=>x??''), v, n, cm:r.cm||'', type:r.type||'', rv:r.rv||'', total: totalOf(r)}; }
 const vNeed = r => (r.v||[]).filter(x=>x==='필요').length;
 const vDone = r => (r.v||[]).filter(x=>x==='완료').length;
 function label(r){ return `${r.edate||''} · ${r.mgr}${r.month?` (${r.month})`:''}${r.ptn?` - ${r.ptn}`:''}${r.total!==null?` · ${r.total}점`:''}${r.type==='코칭'?' [코칭용]':''}`; }
@@ -667,6 +676,14 @@ function cmView(){
   if(CM_OPEN) requestAnimationFrame(fitCm);
 }
 $('cmHead').addEventListener('click', ()=>{ CM_OPEN=!CM_OPEN; cmView(); if(CM_OPEN) $('f-cm').focus(); });
+const rvShort = v => { const m=String(v||'').match(/^(.*?)\s+\d{4}-(\d{2})-(\d{2})/); return m ? `${m[1]} ${Number(m[2])}/${Number(m[3])}` : v; };
+function rvView(){
+  const rv=editRec?.rv||'';
+  $('f-rv').textContent = rv ? `✓ 검토완료 (${rvShort(rv)})` : '';
+  $('btnReview').hidden = !editRec;
+  $('btnReview').textContent = rv ? '검토완료 취소' : '✓ 검토완료로 저장';
+  $('btnReview').classList.toggle('cancel', !!rv);
+}
 function typeLook(){ $('f-type').classList.toggle('coach', $('f-type').value==='코칭'); }
 $('f-type').addEventListener('change', ()=>{ dirty=true; typeLook(); });
 $('f-cm').addEventListener('input', ()=>{ dirty=true; fitCm(); pvLater(); });
@@ -730,6 +747,7 @@ function fillForm(r){
   requestAnimationFrame(()=>{ for(let i=0;i<N;i++) fitMemo($('m'+i)); });
   $('formTitle').textContent = r ? `평가 수정 — ${r.mgr} (${r.month||'차월 미입력'})` : '새 평가 입력';
   $('btnDelete').hidden = !r;
+  rvView();
   onScore(); dirty=false;
 }
 function readForm(){
@@ -743,18 +761,26 @@ function readForm(){
 function mergeRec(rec){ const n=normalize(rec); const i=DATA.findIndex(r=>r.id===n.id); if(i>=0) DATA[i]=n; else DATA.push(n); return n; }
 $('btnVAll').onclick=()=>{ formV=formV.map(v=>v==='필요'?'완료':v); renderV(); dirty=true; toast('검증필요 항목을 모두 검증완료로 바꿨어요. 저장을 눌러야 반영됩니다'); };
 $('btnReset').onclick=()=>{ if(dirty && !confirm('작성 중인 내용이 사라집니다. 새로 작성할까요?')) return; fillForm(null); };
-$('btnSave').onclick=()=>{
-  const rec=readForm();
+$('btnSave').onclick=()=>doSave();
+$('btnReview').onclick=()=>{
+  if(!editRec) return;
+  if(editRec.rv){ if(!confirm('검토완료 표시를 취소할까요? (지금 화면의 내용도 함께 저장됩니다)')) return; doSave(false); return; }
+  const need=formV.filter(v=>v==='필요').length;
+  if(need && !confirm(`아직 '검증필요' 항목이 ${need}개 있어요.\n그래도 검토완료로 저장할까요?`)) return;
+  doSave(true);
+};
+function doSave(rv){
+  const rec=readForm(); if(rv!==undefined) rec.rv=rv;
   const miss=[]; if(!rec.mgrEmp)miss.push('지점장'); if(!rec.month)miss.push('차월');
   if(miss.length){ toast(miss.join('·')+'을(를) 선택하세요'); return; }
-  const empty = rec.s.map((v,i)=>v===null?i+1:null).filter(Boolean);
+  const empty = rec.s.map((v,i)=>v===null && !CATS[catOf[i]].bonus ? i+1 : null).filter(Boolean);   // 가점은 비워도 묻지 않음
   if(empty.length && !confirm(`점수가 비어 있는 항목이 있어요: ${empty.join(', ')}번\n그래도 저장할까요?`)) return;
   run(async()=>{
     const r = await api('save',{rec});
     if(!r.ok) throw new Error('저장 실패: '+r.error);
-    mergeRec(r.rec); toast(editing?'수정했습니다':'저장했습니다'); fillForm(null); refreshAll();
+    mergeRec(r.rec); toast(rv===true?'검토완료로 저장했습니다':rv===false?'검토완료를 취소했습니다':editing?'수정했습니다':'저장했습니다'); fillForm(null); refreshAll();
   });
-};
+}
 $('btnDelete').onclick=()=>{
   if(!editing) return;
   if(!confirm(`${editRec?.mgr||''} 평가를 삭제할까요? 되돌릴 수 없습니다.`)) return;
@@ -763,10 +789,23 @@ $('btnDelete').onclick=()=>{
 window.addEventListener('beforeunload', e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
 
 /* ================= 목록 ================= */
+const LSORT={key:'', dir:1};
+const lsVal={edate:r=>r.edate||'', center:r=>r.center||'', month:r=>r.month||'', mgr:r=>r.mgr||'', ptnCode:r=>r.ptnCode||'', ptn:r=>r.ptn||'', evr:r=>r.evr||'',
+  total:r=>r.total, state:r=>(vNeed(r)?0:r.rv?2:1)};
+function lsort(rows){
+  const k=LSORT.key, d=LSORT.dir; if(!k) return rows;
+  return [...rows].sort((a,b)=>{ let x=lsVal[k](a), y=lsVal[k](b);
+    if(k==='total'||k==='state'){ x=x??-1; y=y??-1; return (x-y)*d || (b.edate||'').localeCompare(a.edate||''); }
+    if(k==='center'){ const ci=c=>{ const i=CENTERS.indexOf(c); return i<0?99:i; }; return (ci(x)-ci(y))*d || (b.edate||'').localeCompare(a.edate||''); }
+    return String(x).localeCompare(String(y),'ko',{numeric:true})*d || (b.edate||'').localeCompare(a.edate||''); });
+}
+$('listHead').addEventListener('click', e=>{ const th=e.target.closest('th[data-ls]'); if(!th) return;
+  const k=th.dataset.ls; if(LSORT.key===k){ if(LSORT.dir>0) LSORT.dir=-1; else { LSORT.key=''; LSORT.dir=1; } } else { LSORT.key=k; LSORT.dir=1; }
+  renderList(); });
 function listFiltered(){
   const m=$('l-month').value, c=$('l-center').value, q=$('l-q').value.trim(), vf=$('l-v').value, tf=$('l-t').value, ym=$('l-ym').value;
   return sorted(DATA).filter(r=>(!m||r.month===m)&&(!c||r.center===c)&&(!q||[r.mgr,r.ptn,r.ptnCode,r.ptnOld,r.evr].some(x=>(x||'').includes(q)))
-    &&(!vf||(vf==='need'?vNeed(r)>0:vDone(r)>0))&&(!tf||(tf==='코칭')===(r.type==='코칭'))&&(!ym||(r.edate||'').slice(0,7)===ym));
+    &&(!vf||(vf==='need'?vNeed(r)>0:vf==='done'?vDone(r)>0:vf==='rv'?!!r.rv:!r.rv))&&(!tf||(tf==='코칭')===(r.type==='코칭'))&&(!ym||(r.edate||'').slice(0,7)===ym));
 }
 ['l-ym','l-month','l-center','l-q','l-v','l-t'].forEach(id=>$(id).addEventListener('input', renderList));
 const gradeCls = t => t===null?'':t>=90?'g-hi':t<60?'g-lo':'';
@@ -778,13 +817,16 @@ function ymOptions(){
 }
 function renderList(){
   ymOptions();
-  const rows=listFiltered();
+  const rows=lsort(listFiltered());
+  document.querySelectorAll('#listHead th[data-ls]').forEach(th=>{ th.querySelector('.ar')?.remove();
+    if(th.dataset.ls===LSORT.key) th.insertAdjacentHTML('beforeend',`<span class="ar">${LSORT.dir>0?'▲':'▼'}</span>`); });
   $('listBody').innerHTML = rows.length ? rows.map(r=>`<tr class="${vNeed(r)?'vpink':r.type==='코칭'?'coachrow':''}">
     <td class="num">${esc(r.edate)}</td><td class="num">${esc(r.center)}</td>
     <td class="num">${r.month?`<span class="tag ${r.month==='2차월'?'t2':'t3'}">${esc(r.month)}</span>`:'-'}</td>
     <td><b>${esc(r.mgr)}</b> <span class="hint">${esc(r.mgrEmp)}</span>${r.type==='코칭'?' <span class="tag coach">코칭용</span>':''}</td><td class="num">${esc(r.ptnCode)}${r.ptnOld?`<div class="hint">구 ${esc(r.ptnOld)}</div>`:''}</td><td>${esc(r.ptn)}</td><td class="num">${esc(r.evr)}</td>
     <td class="num ${gradeCls(r.total)}">${r.total??'-'}</td>
-    <td class="num">${vNeed(r)?`<span class="vtag need">검증필요 ${vNeed(r)}</span>`:vDone(r)?`<span class="vtag done">✓ 완료 ${vDone(r)}</span>`:''}</td>
+    <td class="num" style="white-space:nowrap">${r.rv?`<span class="vtag rv" title="${esc(r.rv)}">✓ 검토완료</span>`:'<span class="vtag norv">미검토</span>'}
+      ${vNeed(r)?` <span class="vtag need">검증필요 ${vNeed(r)}</span>`:vDone(r)?` <span class="vtag done">검증완료 ${vDone(r)}</span>`:''}</td>
     <td class="num" style="white-space:nowrap"><button class="btn sm ghost" data-a="rep" data-id="${r.id}">리포트</button>
       <button class="btn sm ghost" data-a="edit" data-id="${r.id}">수정</button></td></tr>`).join('')
     : `<tr><td colspan="10" class="empty">평가가 없습니다. '평가 입력'에서 추가하세요.</td></tr>`;
@@ -796,14 +838,14 @@ $('listBody').addEventListener('click', e=>{
   else { $('r-sel').value=r.id; show('report'); }
 });
 $('btnCsv').onclick=()=>{
-  const rows=listFiltered();
-  const head=['평가일','센터','차월','지점장사번','지점장','파트너스코드','파트너스구코드','파트너스명','통화일시','평가자',...SHORT.map((s,i)=>`${i+1}.${s}(${ITEMS[i].p})`),'합계',...SHORT.map((s,i)=>`메모${i+1}.${s}`),'총평'];
+  const rows=lsort(listFiltered());
+  const head=['평가일','센터','차월','지점장사번','지점장','파트너스코드','파트너스구코드','파트너스명','통화일시','평가자',...SHORT.map((s,i)=>`${i+1}.${s}(${ITEMS[i].p})`),'합계',...SHORT.map((s,i)=>`메모${i+1}.${s}`),'총평','검토완료'];
   const q=v=>{ v=String(v??''); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
-  const lines=[head.map(q).join(',')].concat(rows.map(r=>[r.edate,r.center,r.month,r.mgrEmp,r.mgr,r.ptnCode,r.ptnOld||'',r.ptn,callFmt(r.calldt),r.evr,...r.s.map(v=>v??''),r.total??'',...r.m,r.cm||''].map(q).join(',')));
+  const lines=[head.map(q).join(',')].concat(rows.map(r=>[r.edate,r.center,r.month,r.mgrEmp,r.mgr,r.ptnCode,r.ptnOld||'',r.ptn,callFmt(r.calldt),r.evr,...r.s.map(v=>v??''),r.total??'',...r.m,r.cm||'',r.rv||''].map(q).join(',')));
   download(new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}), `콜평가_목록_${today()}.csv`);
 };
-$('btnPrintAll').onclick=()=>{ const rows=listFiltered(); if(!rows.length){ toast('인쇄할 평가가 없습니다'); return; } doPrint(rows.map(reportHTML).join('')); };
-$('btnXlsAll').onclick=()=>{ const rows=listFiltered(); if(!rows.length){ toast('다운로드할 평가가 없습니다'); return; } run(()=>downloadEvalBook(rows, 0, `콜평가_평가시트_${today()}.xlsx`)); };
+$('btnPrintAll').onclick=()=>{ const rows=lsort(listFiltered()); if(!rows.length){ toast('인쇄할 평가가 없습니다'); return; } doPrint(rows.map(reportHTML).join('')); };
+$('btnXlsAll').onclick=()=>{ const rows=lsort(listFiltered()); if(!rows.length){ toast('다운로드할 평가가 없습니다'); return; } run(()=>downloadEvalBook(rows, 0, `콜평가_평가시트_${today()}.xlsx`)); };
 
 /* ================= 개인 리포트 ================= */
 function renderReportSel(){
